@@ -1,4 +1,5 @@
 import re
+from slugify import slugify
 
 def versiontuple(v):
     if isinstance(v, str):
@@ -8,6 +9,7 @@ def versiontuple(v):
 class UnityVersion:
     def __init__(self, name, url):
         self.name = name
+        self.file_name = '%s.json'%slugify(name)
         self.url = url
         self.is_valid = self.parse_version_object()
 

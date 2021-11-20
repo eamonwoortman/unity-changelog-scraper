@@ -1,17 +1,7 @@
-#!/usr/bin/env python3
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
-import re
-from slugify import slugify
-from helpers import UnityVersion, versiontuple
-from version_scraper import find_unity_versions
 
-UNITY_BASE_URL = "https://unity3d.com/"
-UNITY_WHATS_NEW_URL = "https://unity3d.com/unity/whats-new/"
-#UNITY_BETA_RSS = "https://unity3d.com/unity/beta/latest.xml"
-#UNITY_LTS_RSS = "https://unity3d.com/unity/lts-releases.xml"
-#UNIT_RELEASES_RSS = "https://unity3d.com/unity/releases.xml"
+from helpers import UnityVersion
 
 
 def is_header_tag_parent(header_tag1, header_tag2):
@@ -49,27 +39,16 @@ def scrape_changelog_page(file_name, changelog_url):
 def changelog_json_exists(file_name):
     return False
 
-def scrape_changelog_version(unity_version):
-    version_file_name = '%s.json'%slugify(unity_version['name'])
-    if (changelog_json_exists(version_file_name)):
+def scrape_changelog_version(unity_version : UnityVersion):
+    if (changelog_json_exists(unity_version.file_name)):
         return
-    scrape_changelog_page(version_file_name, unity_version['url'])
+    scrape_changelog_page(unity_version.file_name, unity_version.url)
 
-def scrape_changelog_versions(unity_versions):
+def scrape_changelog_versions(unity_versions: list[UnityVersion]):
     for version in unity_versions:
         try:
             scrape_changelog_version(version)
         except Exception as ex:
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
+        break
 
-
-unity_versions = find_unity_versions()
-print([x.name for x in unity_versions])
-#scrape_changelog_versions(unity_versions)
-
-# individual tests
-#scrape_version = 'Unity 2021.1.21' 
-#scrape_version = 'Unity 5.6.4'
-#scrape_version = 'Unity 2022.1.0 Alpha 13'
-#unity_version = next((e for e in unity_versions if e['name'] == scrape_version), None)
-#scrape_changelog_version(unity_version)
