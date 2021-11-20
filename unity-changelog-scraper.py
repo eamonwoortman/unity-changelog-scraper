@@ -4,57 +4,15 @@ from bs4 import BeautifulSoup
 import urllib.parse
 import re
 from slugify import slugify
-from packaging import version
+from helpers import UnityVersion, versiontuple
+from version_scraper import find_unity_versions
 
 UNITY_BASE_URL = "https://unity3d.com/"
 UNITY_WHATS_NEW_URL = "https://unity3d.com/unity/whats-new/"
 #UNITY_BETA_RSS = "https://unity3d.com/unity/beta/latest.xml"
 #UNITY_LTS_RSS = "https://unity3d.com/unity/lts-releases.xml"
 #UNIT_RELEASES_RSS = "https://unity3d.com/unity/releases.xml"
-MIN_UNITY_VERSION = version.parse('5.0')
 
-def create_unity_version_object(list_entry):
-    version_name = list_entry.text
-    version_url = urllib.parse.urljoin(UNITY_BASE_URL, list_entry['href'])
-    return {'name': version_name, 'url': version_url}
-
-def versiontuple(v):
-    return tuple(map(int, (v.split("."))))
-
-def filter_unity_version_entries(version_entry):
-    """Filters unity version from our list
-    
-    For now, we ignore version older than < 5.0 and "Archive"
-    """
-    version_name = version_entry.text
-    version_url_friendly = version_entry['href'].rsplit('/', 1)[-1]
-    if version_name == 'Archive':
-        return False
-    return True
-    version_string = version_url_friendly.replace('unity-', '') #version_name.replace('Unity', '').strip().replace(' ', '.')
-    regex_match = re.match('^([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:[abf]([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?', version_string)
-    current_version_tuple = regex_match.groups()
-    #if (versiontuple(current_version_tuple) < versiontuple('5.0')):
-    #    print('skipping: %s'%','.join(current_version_tuple))
-    #print(regex_match.groups())
-    return False
-    unity_version = version.parse(version_string) 
-     
-    if unity_version < MIN_UNITY_VERSION:
-        return False
-    return True
-
-def find_unity_versions():
-    """Return a list of "{name, url}" objects
-
-    Queries the Unity 'whats new' website and scrapes a list of Unity versions and their changelog urls
-    """
-    page = requests.get(UNITY_WHATS_NEW_URL)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    version_li_entries = soup.find(id='content-wrapper').select('.select-box a')
-    filtered_li_entries = filter(lambda x: filter_unity_version_entries(x), version_li_entries)
-    version_list = list(map(lambda x: create_unity_version_object(x), filtered_li_entries))
-    return version_list
 
 def is_header_tag_parent(header_tag1, header_tag2):
     return (header_tag1.name > header_tag2.name)
@@ -106,7 +64,7 @@ def scrape_changelog_versions(unity_versions):
 
 
 unity_versions = find_unity_versions()
-print(unity_versions)
+print([x.name for x in unity_versions])
 #scrape_changelog_versions(unity_versions)
 
 # individual tests
