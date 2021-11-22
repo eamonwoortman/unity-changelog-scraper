@@ -1,5 +1,7 @@
 import re
+
 from slugify import slugify
+
 
 def versiontuple(v):
     if isinstance(v, str):

@@ -1,8 +1,10 @@
+import urllib.parse
+
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
 from slugify import slugify
-from helpers import UnityVersion, versiontuple
+
+from helpers.unity_version import UnityVersion, versiontuple
 
 # constants
 UNITY_WHATS_NEW_URL = "https://unity3d.com/unity/whats-new/"
