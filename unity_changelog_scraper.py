@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from changelog_scraper import scrape_changelog_versions
+from changelog_scraper import scrape_changelog_versions, test_scrapes
 from version_scraper import find_unity_versions
 
 UNITY_BASE_URL = "https://unity3d.com/"
@@ -13,7 +13,7 @@ unity_versions = find_unity_versions()
 print([x.name for x in unity_versions])
 
 # scrape each changelog page
-scrape_changelog_versions(unity_versions)
+test_scrapes(unity_versions)
 
 
 # individual tests
