@@ -11,15 +11,14 @@ def versiontuple(v):
 class UnityVersion:
     def __init__(self, name, url):
         self.name = name
-        self.file_name = '%s.json'%slugify(name)
+        self.version_string = url.rsplit('/', 1)[-1].replace('unity-', '')
+        self.file_name = '%s.json'%self.version_string
         self.url = url
         self.is_valid = self.parse_version_object()
 
     def parse_version_object(self):
         if self.name == 'Archive':
             return False
-        version_url_friendly = self.url.rsplit('/', 1)[-1]
-        version_string = version_url_friendly.replace('unity-', '')
-        regex_match = re.match('^([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:[abf]([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?', version_string)
+        regex_match = re.match('^([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:[abf]([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?', self.version_string)
         self.version_tuple = versiontuple(filter(lambda x: x is not None, regex_match.groups()))
         return True
