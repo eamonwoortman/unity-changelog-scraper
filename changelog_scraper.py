@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 from pathlib import Path
 
 import jsontree
@@ -10,6 +11,25 @@ from helpers.unity_version import UnityVersion
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
 OUTPUT_FOLDER_NAME='./output'
+
+class ChangelogEntry:
+    
+    def __init__(self, list_entry):
+        self.list_entry = list_entry
+        self.parse_list_entry()
+
+    def parse_list_entry(self):
+        entry_text = self.list_entry.text
+        #regex_match = re.match("^(.*?)(?:\:\s)(.*)", entry_text)
+        regex_match = re.match("^(.*?)[?:\:]\s(Added|Removed|Changed|Fixed|Updated|Deprecated)?[\:\s]?(.*)", entry_text)
+        match_groups = regex_match.groups()
+        if len(match_groups) != 3:
+            print("Failed to parse entry: %s"%entry_text)
+            return
+        self.type = match_groups[0]
+        self.modification = match_groups[1] # optional group
+        self.title = match_groups[2]
+
 
 def is_main_category(category_name: str):
     for main_category_name in MAIN_CATEGORIES:
@@ -23,6 +43,14 @@ def is_header_tag_parent(header_tag1, header_tag2):
 def key_exists(json_tree:jsontree, key:str):
     return json_tree.get(key, None) is not None
 
+def create_entries_list(list_entries):
+    return list(map(lambda x: ChangelogEntry(x), list_entries))
+
+def create_list_entry(changelog:ChangelogEntry):
+    if changelog.modification is not None:
+        return "[%s] [%s] --> %s"%(changelog.type, changelog.modification, changelog.title)
+    return "[%s] --> %s"%(changelog.type, changelog.title)
+
 def scrape_changelog_page(file_name, changelog_url):
     page = requests.get(changelog_url)
     soup = BeautifulSoup(page.content, 'html.parser')
@@ -32,10 +60,9 @@ def scrape_changelog_page(file_name, changelog_url):
 
     current_category_label = None # known issues, release notes, new entries since ...
     current_sub_category_label = None # improvements, changes, fixes, etc 
-    current_main_category_list = None
-    current_sub_category_list = None
-    for label in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling('h3') or tag.find_previous_sibling('h4'))):
-        list_entries = label.find_all('li')
+    for label in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling(name='h3') or tag.find_previous_sibling(name='h4'))):
+        previous_element = label.previous_element.previous_element
+        list_entries = label.find_all('li', recursive=False)
         entry_count = len(list_entries)
         if (entry_count == 0):
             continue
@@ -66,15 +93,17 @@ def scrape_changelog_page(file_name, changelog_url):
             
             #print('setting sub category2: %s'%current_category_label.text)
 
-        entry_texts = list(map(lambda x: '%s...'%x.text[0:10], list_entries))
+        changelog_entries = create_entries_list(list_entries)
+        changelog_labels = list(map(lambda x:create_list_entry(x), changelog_entries))
+        #changelog_labels = list(map(lambda x: x.title, changelog_entries))
         if current_sub_category_label.text == current_category_label.text:
-            root_node[current_category_label.text] = entry_texts
+            root_node[current_category_label.text] = changelog_labels
         else: 
             # check if our sub category already exists
             if key_exists(root_node, current_category_label.text) and key_exists(root_node.get(current_category_label.text), current_sub_category_label.text): 
-                root_node[current_category_label.text][current_sub_category_label.text] += entry_texts
+                root_node[current_category_label.text][current_sub_category_label.text] += changelog_labels
             else: # otherwise, add a new entry
-                root_node[current_category_label.text][current_sub_category_label.text] = entry_texts
+                root_node[current_category_label.text][current_sub_category_label.text] = changelog_labels
         #current_sub_category_list += entry_texts
         # current category is also a sub category
         #if current_category_label == current_sub_category_label:
