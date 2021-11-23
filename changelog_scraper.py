@@ -10,10 +10,10 @@ from bs4 import BeautifulSoup
 from helpers.unity_version import UnityVersion
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
+IGNORE_CATEGORIES=['System Requirements', 'System Requirements Changes']
 OUTPUT_FOLDER_NAME='./output'
 
 class ChangelogEntry:
-    
     def __init__(self, list_entry):
         self.list_entry = list_entry
         self.parse_list_entry()
@@ -74,16 +74,20 @@ def scrape_changelog_page(file_name, changelog_url):
 
         # find the main category
         neighbour_header = ul_element.find_previous_sibling('h3') or ul_element.find_previous_sibling('h2')
-        if current_category_label is None or current_category_label.text != neighbour_header.text:
-            current_category_label = neighbour_header
+        if current_category_label is None or current_category_label != neighbour_header.text:
+            current_category_label = neighbour_header.text
 
         # find the sub category
         neighbour_header_small = ul_element.find_previous_sibling('h4')
         if neighbour_header_small is not None: 
-            if current_sub_category_label.text != neighbour_header_small.text:
-                current_sub_category_label = neighbour_header_small
+            if current_sub_category_label != neighbour_header_small.text:
+                current_sub_category_label = neighbour_header_small.text
         else: # no subheader found, use the main category...            
             current_sub_category_label = current_category_label
+
+        # skip if this category is to be ignored
+        if current_sub_category_label in IGNORE_CATEGORIES:
+            continue
 
         # create a list of ChangelogEntry items
         changelog_entries = create_entries_list(list_entries)
@@ -91,32 +95,34 @@ def scrape_changelog_page(file_name, changelog_url):
         changelog_labels = list(map(lambda x:create_list_entry(x), changelog_entries))
 
         # if the sub cateogry is the same as the main category, directly assign the list
-        if current_sub_category_label.text == current_category_label.text:
-            root_node[current_category_label.text] = changelog_labels
+        if current_sub_category_label == current_category_label:
+            root_node[current_category_label] = changelog_labels
         else: # otherwise, append it to the sub category node, but only if it exists
             # check if our sub category already exists
-            if key_exists(root_node, current_category_label.text) and key_exists(root_node.get(current_category_label.text), current_sub_category_label.text): 
-                root_node[current_category_label.text][current_sub_category_label.text] += changelog_labels
+            if key_exists(root_node, current_category_label) and key_exists(root_node.get(current_category_label), current_sub_category_label): 
+                root_node[current_category_label][current_sub_category_label] += changelog_labels
             else: # otherwise, add a new entry
-                root_node[current_category_label.text][current_sub_category_label.text] = changelog_labels
+                root_node[current_category_label][current_sub_category_label] = changelog_labels
 
     json_text = jsontree.dumps(root_node, indent=3)
-    write_changelog_file(file_name, json_text)
+    write_json_file(file_name, json_text)
 
 def ensure_dir(path: str):
     Path(path).mkdir(parents=True, exist_ok=True)
 
-def write_changelog_file(file_name, json_text):
+def write_json_file(file_name, json_text):
     ensure_dir(OUTPUT_FOLDER_NAME)
     file_path = Path(OUTPUT_FOLDER_NAME).joinpath(file_name)
     with open(file_path, 'w') as f:
         f.write(json_text)
 
 def changelog_json_exists(file_name):
-    return False
+    file_path = Path(OUTPUT_FOLDER_NAME).joinpath(file_name)
+    return Path.exists(file_path)
 
-def scrape_changelog_version(unity_version : UnityVersion):
-    if (changelog_json_exists(unity_version.file_name)):
+def scrape_changelog_version(unity_version : UnityVersion, overwrite_output):
+    if (not overwrite_output and changelog_json_exists(unity_version.file_name)):
+        print ('Skipping \'%s\', output already exists...'%unity_version.name)
         return
     scrape_changelog_page(unity_version.file_name, unity_version.url)
 
