@@ -21,14 +21,20 @@ class ChangelogEntry:
     def parse_list_entry(self):
         entry_text = self.list_entry.text
         #regex_match = re.match("^(.*?)(?:\:\s)(.*)", entry_text)
-        regex_match = re.match("^(.*?)[?:\:]\s(Added|Removed|Changed|Fixed|Updated|Deprecated)?[\:\s]?(.*)", entry_text)
+        regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated)?\s?(.*)", entry_text)
         match_groups = regex_match.groups()
-        if len(match_groups) != 3:
+        if len(match_groups) != 4:
             print("Failed to parse entry: %s"%entry_text)
             return
-        self.type = match_groups[0]
-        self.modification = match_groups[1] # optional group
-        self.title = match_groups[2]
+        if match_groups[1] is not None:
+            self.type = self.strip_type(match_groups[1])
+        else:
+            self.type = None
+        self.modification = match_groups[2] # optional group
+        self.title = match_groups[3].title()
+
+    def strip_type(self, type_text):
+        return re.sub("^(?:\(.*\) - )", '', type_text).strip()
 
 
 def is_main_category(category_name: str):
