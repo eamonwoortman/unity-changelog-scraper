@@ -52,69 +52,50 @@ def create_list_entry(changelog:ChangelogEntry):
     return "[%s] --> %s"%(changelog.type, changelog.title)
 
 def scrape_changelog_page(file_name, changelog_url):
+    print('Scraping version from url: %s'%changelog_url)
+
     page = requests.get(changelog_url)
     soup = BeautifulSoup(page.content, 'html.parser')
-    print('Scraping version from url: %s'%changelog_url)
-    
-    root_node = jsontree.jsontree()
-
+    root_node = jsontree.jsontree() # our root json tree
     current_category_label = None # known issues, release notes, new entries since ...
     current_sub_category_label = None # improvements, changes, fixes, etc 
-    for label in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling(name='h3') or tag.find_previous_sibling(name='h4'))):
-        previous_element = label.previous_element.previous_element
-        list_entries = label.find_all('li', recursive=False)
-        entry_count = len(list_entries)
-        if (entry_count == 0):
+
+    for ul_element in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling(name='h3') or tag.find_previous_sibling(name='h4'))):
+        list_entries = ul_element.find_all('li', recursive=False)
+        # ignore empty lists 
+        if (len(list_entries) == 0):
             continue
 
         # find the main category
-        neighbour_header = label.find_previous_sibling('h3') or label.find_previous_sibling('h2')
+        neighbour_header = ul_element.find_previous_sibling('h3') or ul_element.find_previous_sibling('h2')
         if current_category_label is None or current_category_label.text != neighbour_header.text:
-            print('setting new category: %s'%neighbour_header.text)
             current_category_label = neighbour_header
-            #current_main_category_list = {}
-            #root_node[current_category_label.text] = current_main_category_list
 
         # find the sub category
-        neighbour_header_small = label.find_previous_sibling('h4')
+        neighbour_header_small = ul_element.find_previous_sibling('h4')
         if neighbour_header_small is not None: 
             if current_sub_category_label.text != neighbour_header_small.text:
-                #current_sub_category_list = []
-                #current_main_category_list[current_sub_category_label.text] = current_sub_category_list
-                print('setting sub category: %s, was %s %s'%(neighbour_header_small.text, current_sub_category_label.text, current_sub_category_label.text is not neighbour_header_small.text))
                 current_sub_category_label = neighbour_header_small
         else: # no subheader found, use the main category...            
             current_sub_category_label = current_category_label
-            #current_sub_category_list = []
-            #current_main_category_list[current_sub_category_label.text] = current_sub_category_list
-            #current_sub_category_label = current_category_label
-            #current_sub_category_list = []
-            #current_main_category_list[current_sub_category_label.text] = current_sub_category_list
-            
-            #print('setting sub category2: %s'%current_category_label.text)
 
+        # create a list of ChangelogEntry items
         changelog_entries = create_entries_list(list_entries)
+        # transform those entries to a temporary label that we can read
         changelog_labels = list(map(lambda x:create_list_entry(x), changelog_entries))
-        #changelog_labels = list(map(lambda x: x.title, changelog_entries))
+
+        # if the sub cateogry is the same as the main category, directly assign the list
         if current_sub_category_label.text == current_category_label.text:
             root_node[current_category_label.text] = changelog_labels
-        else: 
+        else: # otherwise, append it to the sub category node, but only if it exists
             # check if our sub category already exists
             if key_exists(root_node, current_category_label.text) and key_exists(root_node.get(current_category_label.text), current_sub_category_label.text): 
                 root_node[current_category_label.text][current_sub_category_label.text] += changelog_labels
             else: # otherwise, add a new entry
                 root_node[current_category_label.text][current_sub_category_label.text] = changelog_labels
-        #current_sub_category_list += entry_texts
-        # current category is also a sub category
-        #if current_category_label == current_sub_category_label:
-        #    print('[%s] %d entries'%(current_category_label.text, entry_count))
-        #else:
-        #    print('[%s] [%s] %d entries'%(current_category_label.text, current_sub_category_label.text, entry_count))
 
     json_text = jsontree.dumps(root_node, indent=3)
     write_changelog_file(file_name, json_text)
-    #print(json_text)
-
 
 def ensure_dir(path: str):
     Path(path).mkdir(parents=True, exist_ok=True)
@@ -142,23 +123,6 @@ def scrape_changelog_versions(unity_versions: list[UnityVersion]):
 
 
 def test_scrapes(unity_versions: list[UnityVersion]):
-    scrape_changelog_version(unity_versions[0])
-    #for i in range(10, len(unity_versions), 5):
-    #    scrape_changelog_version(unity_versions[i])
-
-
-def json_test():
-    data = jsontree.jsontree()
-    data.username = 'doug'
-    data.meta.date = datetime.datetime.now()
-    data.somethingelse = [1,2,3]
-
-    data['username'] == 'doug'
-
-    ser = jsontree.dumps(data)
-    ser = ser.encode("utf-8")
-
-    #backagain = jsontree.loads(ser)
-    #cloned = jsontree.clone(data)
-    backagain = json.loads(ser)
-    print(backagain)
+    #scrape_changelog_version(unity_versions[0])
+    for i in range(10, len(unity_versions), 5):
+        scrape_changelog_version(unity_versions[i])
