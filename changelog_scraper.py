@@ -134,7 +134,25 @@ def scrape_changelog_versions(unity_versions: list[UnityVersion]):
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
 
 
+def write_catalog():
+    # get the files in the output folder
+    p = Path(OUTPUT_FOLDER_NAME).glob('**/*.json')
+    # filter on files and ignore catalog file
+    files = [x.name for x in p if x.is_file() and "catalog" not in x.name]
+    # construct our json
+    root_node = jsontree.jsontree() 
+    root_node.date_modified = datetime.datetime.utcnow()
+    root_node.changelogs = files
+    # export to text and write
+    json_text = jsontree.dumps(root_node, indent=3)
+    write_json_file('catalog.json', json_text)
+
 def test_scrapes(unity_versions: list[UnityVersion]):
+    overwrite_output = False
     #scrape_changelog_version(unity_versions[0])
+    #for i in range(10, len(unity_versions), 5):
+    #    scrape_changelog_version(unity_versions[i], overwrite_output)
     for i in range(10, len(unity_versions), 5):
-        scrape_changelog_version(unity_versions[i])
+        scrape_changelog_version(unity_versions[i], overwrite_output)
+
+    write_catalog()
