@@ -7,7 +7,8 @@ import jsontree
 import requests
 from bs4 import BeautifulSoup
 
-from helpers.unity_version import UnityVersion
+from helpers.unity_version import (UnityVersion, parse_version_tuple,
+                                   versiontuple)
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
 IGNORE_CATEGORIES=['System Requirements', 'System Requirements Changes']
@@ -133,12 +134,16 @@ def scrape_changelog_versions(unity_versions: list[UnityVersion]):
         except Exception as ex:
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
 
+def sort_changelog_files(file_name):
+    version_tuple = parse_version_tuple(file_name)
+    return version_tuple
 
 def write_catalog():
     # get the files in the output folder
     p = Path(OUTPUT_FOLDER_NAME).glob('**/*.json')
     # filter on files and ignore catalog file
     files = [x.name for x in p if x.is_file() and "catalog" not in x.name]
+    files.sort(reverse=True, key=sort_changelog_files)
     # construct our json
     root_node = jsontree.jsontree() 
     root_node.date_modified = datetime.datetime.utcnow()
@@ -150,8 +155,6 @@ def write_catalog():
 def test_scrapes(unity_versions: list[UnityVersion]):
     overwrite_output = False
     #scrape_changelog_version(unity_versions[0])
-    #for i in range(10, len(unity_versions), 5):
-    #    scrape_changelog_version(unity_versions[i], overwrite_output)
     for i in range(10, len(unity_versions), 5):
         scrape_changelog_version(unity_versions[i], overwrite_output)
 

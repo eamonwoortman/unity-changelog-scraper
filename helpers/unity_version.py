@@ -8,6 +8,10 @@ def versiontuple(v):
         return tuple(map(int, (v.split("."))))
     return tuple(map(int, v))
 
+def parse_version_tuple(version_string): 
+    regex_match = re.match('^([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:[abf]([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?', version_string)
+    return versiontuple(filter(lambda x: x is not None, regex_match.groups()))
+
 class UnityVersion:
     def __init__(self, name, url):
         self.name = name
@@ -19,6 +23,6 @@ class UnityVersion:
     def parse_version_object(self):
         if self.name == 'Archive':
             return False
-        regex_match = re.match('^([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:[abf]([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?', self.version_string)
-        self.version_tuple = versiontuple(filter(lambda x: x is not None, regex_match.groups()))
+        self.version_tuple = parse_version_tuple(self.version_string)
         return True
+
