@@ -1,7 +1,10 @@
 import datetime
-import json
+import os
 import re
+from base64 import b64decode, b64encode
+from json import dumps, loads
 from pathlib import Path
+from typing import List
 
 import jsontree
 import requests
@@ -37,7 +40,6 @@ class ChangelogEntry:
     def strip_type(self, type_text):
         return re.sub("^(?:\(.*\) - )", '', type_text).strip()
 
-
 def is_main_category(category_name: str):
     for main_category_name in MAIN_CATEGORIES:
         if main_category_name in category_name:
@@ -58,15 +60,66 @@ def create_list_entry(changelog:ChangelogEntry):
         return "[%s] [%s] --> %s"%(changelog.type, changelog.modification, changelog.title)
     return "[%s] --> %s"%(changelog.type, changelog.title)
 
-def scrape_changelog_page(file_name, changelog_url):
+
+class ChangelogNode:
+    name:str = '';
+    children = [];
+    entries = [];
+
+    def __init__(self, name=''):
+        self.name = name
+        self.children = []
+        self.entries = []
+
+    def key_exists(self, name:str):
+        child_node = self.get(name)
+        return child_node is not None
+
+    def get(self, name:str) -> 'ChangelogNode':
+        if len(self.children) == 0:
+            return None
+        return next((f for f in self.children if f.name == name), None) 
+
+    def create_child(self, name:str):
+        new_node = ChangelogNode(name)
+        self.children.append(new_node)
+        return new_node
+
+    def add_child(self, new_node:'ChangelogNode'):
+        self.children.append(new_node)
+        return new_node
+
+    def add_entries(self, new_entries:list):
+        self.entries += new_entries
+
+    def toJSON(self):
+        d = dict()
+        for k,v in self.__dict__.items():
+            if k == 'children':
+                if len(v) != 0:
+                    d[k] = [o.toJSON() for o in v]
+            elif k == 'entries':
+                if len(v) != 0:
+                    d[k] = [o for o in v]
+            elif k == 'name' and len(v) != 0:
+                d[k] = v
+        return d
+
+def scrape_changelog_page(version_name, file_name, changelog_url):
     print('Scraping version from url: %s'%changelog_url)
 
     page = requests.get(changelog_url)
     soup = BeautifulSoup(page.content, 'html.parser')
-    root_node = jsontree.jsontree() # our root json tree
+    
+    json_root = jsontree.jsontree() # our root json tree
+    json_root['version'] = version_name
+    
+    root_node = ChangelogNode()
+
     current_category_label = None # known issues, release notes, new entries since ...
     current_sub_category_label = None # improvements, changes, fixes, etc 
-
+    current_main_category_node = None
+    current_sub_category_node = None
     for ul_element in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling(name='h3') or tag.find_previous_sibling(name='h4'))):
         list_entries = ul_element.find_all('li', recursive=False)
         # ignore empty lists 
@@ -97,15 +150,24 @@ def scrape_changelog_page(file_name, changelog_url):
 
         # if the sub cateogry is the same as the main category, directly assign the list
         if current_sub_category_label == current_category_label:
-            root_node[current_category_label] = changelog_labels
+            current_main_category_node = ChangelogNode(current_category_label)
+            current_main_category_node.add_entries(changelog_labels)
+            root_node.add_child(current_main_category_node)
         else: # otherwise, append it to the sub category node, but only if it exists
             # check if our sub category already exists
-            if key_exists(root_node, current_category_label) and key_exists(root_node.get(current_category_label), current_sub_category_label): 
-                root_node[current_category_label][current_sub_category_label] += changelog_labels
+            current_main_category_node = root_node.get(current_category_label)
+            current_sub_category_node = current_main_category_node and current_main_category_node.get(current_sub_category_label)
+            if current_sub_category_node is not None: 
+                current_sub_category_node.add_entries(changelog_labels)
             else: # otherwise, add a new entry
-                root_node[current_category_label][current_sub_category_label] = changelog_labels
+                if current_main_category_node is None:
+                    current_main_category_node = root_node.create_child(current_category_label)
+                if current_main_category_node.key_exists(current_sub_category_label) is False:
+                    current_sub_category_node = current_main_category_node.create_child(current_sub_category_label)
+                current_sub_category_node.add_entries(changelog_labels)
 
-    json_text = jsontree.dumps(root_node, indent=3)
+    json_root['categories'] = root_node.toJSON()
+    json_text = jsontree.dumps(json_root, indent=3)
     write_json_file(file_name, json_text)
 
 def ensure_dir(path: str):
@@ -125,7 +187,7 @@ def scrape_changelog_version(unity_version : UnityVersion, overwrite_output):
     if (not overwrite_output and changelog_json_exists(unity_version.file_name)):
         print ('Skipping \'%s\', output already exists...'%unity_version.name)
         return
-    scrape_changelog_page(unity_version.file_name, unity_version.url)
+    scrape_changelog_page(unity_version.name, unity_version.file_name, unity_version.url)
 
 def scrape_changelog_versions(unity_versions: list[UnityVersion]):
     for version in unity_versions:
@@ -135,7 +197,8 @@ def scrape_changelog_versions(unity_versions: list[UnityVersion]):
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
 
 def sort_changelog_files(file_name):
-    version_tuple = parse_version_tuple(file_name)
+    file_name_no_ext = os.path.splitext(file_name)[0]
+    version_tuple = parse_version_tuple(file_name_no_ext)
     return version_tuple
 
 def write_catalog():
@@ -153,9 +216,9 @@ def write_catalog():
     write_json_file('catalog.json', json_text)
 
 def test_scrapes(unity_versions: list[UnityVersion]):
-    overwrite_output = False
-    #scrape_changelog_version(unity_versions[0])
-    for i in range(10, len(unity_versions), 5):
-        scrape_changelog_version(unity_versions[i], overwrite_output)
+    overwrite_output = True
+    scrape_changelog_version(unity_versions[0], overwrite_output)
+    #for i in range(10, len(unity_versions), 5):
+    #    scrape_changelog_version(unity_versions[i], overwrite_output)
 
     write_catalog()
