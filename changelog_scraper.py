@@ -5,10 +5,11 @@ from base64 import b64decode, b64encode
 from json import dumps, loads
 from pathlib import Path
 from typing import List
-from py_linq import Enumerable
+
 import jsontree
 import requests
 from bs4 import BeautifulSoup
+from py_linq import Enumerable
 
 from helpers.unity_version import (UnityVersion, parse_version_tuple,
                                    versiontuple)
@@ -113,6 +114,7 @@ class ChangelogNode:
 
 from itertools import groupby
 
+
 def create_category_node(current_group):
     key = current_group[0]
     entries = list(current_group[1])
@@ -121,7 +123,7 @@ def create_category_node(current_group):
     new_node.add_entries([create_list_entry(entry) for entry in entries])
     return new_node
 
-def scrape_changelog_page(version_name, file_name, changelog_url):
+def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
 
     page = requests.get(changelog_url)
@@ -129,6 +131,7 @@ def scrape_changelog_page(version_name, file_name, changelog_url):
     
     json_root = jsontree.jsontree() # our root json tree
     json_root['version'] = version_name
+    json_root['slug'] = slug
     json_root['url'] = changelog_url
     root_node = ChangelogNode()
 
@@ -207,7 +210,7 @@ def scrape_changelog_version(unity_version : UnityVersion, overwrite_output):
     if (not overwrite_output and changelog_json_exists(unity_version.file_name)):
         print ('Skipping \'%s\', output already exists...'%unity_version.name)
         return
-    scrape_changelog_page(unity_version.name, unity_version.file_name, unity_version.url)
+    scrape_changelog_page(unity_version.name, unity_version.file_name, unity_version.url, unity_version.version_string)
 
 def scrape_changelog_versions(unity_versions: list[UnityVersion]):
     for version in unity_versions:
@@ -223,8 +226,10 @@ def sort_changelog_files(file_dict):
 
 def create_catalog_entry(file_path:Path, unity_versions: list[UnityVersion]):
     entry = dict()
-    entry['version'] = next((f.name for f in unity_versions if f.file_name == file_path.name), "none")
+    version = next((f for f in unity_versions if f.file_name == file_path.name), "none")
+    entry['version'] = version.name
     entry['file_name'] = file_path.name
+    entry['slug'] = version.version_string
     return entry
 
 def write_catalog(unity_versions: list[UnityVersion]):
