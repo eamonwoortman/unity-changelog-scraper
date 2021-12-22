@@ -36,7 +36,10 @@ class ChangelogEntry:
         else:
             self.type = None
         self.modification = match_groups[2] # optional group
-        self.title = match_groups[3].title()
+        self.title = self.capitalize(match_groups[3])
+
+    def capitalize(self, str):
+        return str[0].upper() + str[1:]
 
     def strip_type(self, type_text):
         return re.sub("^(?:\(.*\) - )", '', type_text).strip()
