@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import re
 from base64 import b64decode, b64encode
@@ -67,7 +68,8 @@ def create_entries_list(list_entries) -> List['ChangelogEntry']:
 
 def create_list_entry(changelog:ChangelogEntry):
     if changelog.modification is not None:
-        return "[%s] --> %s"%(changelog.modification, changelog.title)
+        entry = {'label': changelog.modification, 'title': changelog.title}
+        return entry #   "{label: \"%s\", title: \"%s\"}"%(changelog.modification, changelog.title)
     return "%s"%(changelog.title)
     #if changelog.modification is not None:
     #    return "[%s] [%s] --> %s"%(changelog.type, changelog.modification, changelog.title)
