@@ -27,7 +27,7 @@ class ChangelogEntry:
         entry_contents = list_entry.contents
         entry_p = list_entry.p
         entry_text = entry_p.contents[0].replace('\n', ' ')
-        regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated)?\s?(.*)", entry_text)
+        regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(.*)", entry_text)
         match_groups = regex_match.groups()
         if len(match_groups) != 4:
             print("Failed to parse entry: %s"%entry_text)
