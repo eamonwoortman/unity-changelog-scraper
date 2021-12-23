@@ -20,12 +20,12 @@ OUTPUT_FOLDER_NAME='./output'
 
 class ChangelogEntry:
     def __init__(self, list_entry):
-        self.list_entry = list_entry
-        self.parse_list_entry()
+        self.parse_list_entry(list_entry)
 
-    def parse_list_entry(self):
-        entry_text = self.list_entry.text
-        #regex_match = re.match("^(.*?)(?:\:\s)(.*)", entry_text)
+    def parse_list_entry(self, list_entry):
+        entry_contents = list_entry.contents
+        entry_p = list_entry.p
+        entry_text = entry_p.contents[0].replace('\n', ' ')
         regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated)?\s?(.*)", entry_text)
         match_groups = regex_match.groups()
         if len(match_groups) != 4:
@@ -36,9 +36,15 @@ class ChangelogEntry:
         else:
             self.type = None
         self.modification = match_groups[2] # optional group
-        self.title = self.capitalize(match_groups[3])
+        
+        title = self.capitalize(match_groups[3])
+        title_rest = map(lambda x: str(x), entry_p.contents[1:])
+        self.title = title + ''.join(title_rest)
+
 
     def capitalize(self, str):
+        if len(str) == 0:
+            return str
         return str[0].upper() + str[1:]
 
     def strip_type(self, type_text):
@@ -251,7 +257,9 @@ def write_catalog(unity_versions: list[UnityVersion]):
 
 def test_scrapes(unity_versions: list[UnityVersion]):
     overwrite_output = True
-    scrape_changelog_version(unity_versions[1], overwrite_output)
+    #specific_version = unity_versions[1]
+    specific_version = next(f for f in unity_versions if f.version_string == '2021.2.5')
+    scrape_changelog_version(specific_version, overwrite_output)
     #for i in range(10, len(unity_versions), 5):
     #    scrape_changelog_version(unity_versions[i], overwrite_output)
 
