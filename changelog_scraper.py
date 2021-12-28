@@ -1,17 +1,12 @@
 import datetime
 import enum
-import json
-import os
+import os, glob
 import re
-from base64 import b64decode, b64encode
-from json import dumps, loads
 from pathlib import Path
-from typing import List, Literal
-import shutil
+from typing import List
 import jsontree
 import requests
 from bs4 import BeautifulSoup
-from py_linq import Enumerable
 
 from helpers.unity_version import (UnityVersion, parse_version_tuple,
                                    versiontuple)
@@ -22,7 +17,7 @@ OUTPUT_FOLDER_NAME='./output'
 
 class ChangelogEntry:
     def __init__(self, list_entry, override_modification = None):
-        self.parse_list_entry(list_entry)
+        self.parse_list_entry(list_entry, override_modification)
 
     def parse_list_entry(self, list_entry, override_modification = None):
         has_extended_markup = list_entry.p is not None
@@ -33,6 +28,10 @@ class ChangelogEntry:
             entry_text = list_entry.text
         regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(.*)", entry_text)
         match_groups = regex_match.groups()
+        # groups:
+        # [1] (type): 2D, AI, Android, Linux, ... (optional)
+        # [2] (modification): Added, Removed, Fixed (optional)
+        # [3] (title): 'A crash that occurred when ...'  
         if len(match_groups) != 4:
             print("Failed to parse entry: %s"%entry_text)
             return
@@ -144,6 +143,13 @@ def create_category_node(current_group):
     new_node.add_entries([create_list_entry(entry) for entry in entries])
     return new_node
 
+def get_modification_override(category_label):
+    if category_label == 'Fixes':
+        return 'Fixed'
+    if "Known Issues" in category_label:
+        return 'Bug'
+    return None
+
 def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
 
@@ -184,9 +190,7 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
             continue
 
         # create a list of ChangelogEntry items
-        override_modification = None
-        if current_category_label == 'Fixes':
-            override_modification = 'Fixed'
+        override_modification = get_modification_override(current_category_label) or get_modification_override(current_sub_category_label)
         changelog_entries = create_entries_list(list_entries, override_modification)
 
         # create a category node for each changelog entry that has 'type' assigned
@@ -260,7 +264,9 @@ def create_catalog_entry(file_path:Path, unity_versions: list[UnityVersion]):
 
 def clear_output_folder():
     try:
-        shutil.rmtree(OUTPUT_FOLDER_NAME)
+        filelist = glob.glob(os.path.join(OUTPUT_FOLDER_NAME, "*"))
+        for f in filelist:
+            os.remove(f)
     except:
         pass
 
