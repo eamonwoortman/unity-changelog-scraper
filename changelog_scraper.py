@@ -119,7 +119,7 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
         change_types += list(map(lambda x: x.modification, changelog_entries))
 
         # create a category node for each changelog entry that has 'type' assigned
-        grouped_changelog_entries = list(map(create_category_node, groupby(changelog_entries, lambda f: (f.type if f.type is not None else 'General'))))
+        grouped_changelog_entries = list(map(create_category_node, groupby(changelog_entries, lambda f: (f.type if f.type else 'General'))))
         category_types += list(map(lambda x: x.name, list(filter(lambda x: x.name not in category_types, grouped_changelog_entries))))
 
         # if the sub cateogry is the same as the main category, directly assign the list
