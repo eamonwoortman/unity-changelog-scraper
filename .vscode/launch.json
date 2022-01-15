@@ -10,6 +10,15 @@
             "request": "launch",
             "program": "unity_changelog_scraper.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Debug Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": ["debug-test"],
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }
