@@ -18,26 +18,28 @@ class ChangelogEntry:
 
         # groups:
         #   [bugprefix, bugcontent, prefixseperator]: '(24241) - )' (optional)
-        #   [type]: '2D, AI, Android, Linux, ...' (optional)
+        #   [category, alt_category]: '2D, AI, Android, Linux, ...' (optional)
         #   [modification]: 'Added, Removed, Fixed' (optional)
         #   [content]: 'A crash that occurred when ...'  
-        regex_match = re.match("^(?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator> - )))?((?P<category>.*?)[?:\:]\s)?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(?P<content>.*)", entry_text)
+        regex_match = re.match("^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>[\w\s]*)(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>[\w\s]*)(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(?P<content>.*)", entry_text)
         match_groups = regex_match.groupdict()
 
         # prefix group
         bug_prefix_content = None
-        if match_groups['bugprefix'] is not None:
+        if match_groups['bugprefix']:
             bug_prefix_content = match_groups['bugcontent']
 
         # category group
-        if match_groups['category'] is not None:
+        if match_groups['category']:
             self.type = self.strip_type(match_groups['category'])
+        elif match_groups['alt_category']:
+            self.type = self.strip_type(match_groups['alt_category'])
         else:
             self.type = None
 
         # modification group
         modification = None
-        if match_groups['modification'] is not None:
+        if match_groups['modification']:
             modification = match_groups['modification'] # optional group
         self.modification = override_modification if override_modification is not None else modification
         
