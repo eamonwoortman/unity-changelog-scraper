@@ -1,60 +1,25 @@
 import datetime
-import enum
-import os, glob
-import re
+import glob
+import json
+import os
+from itertools import groupby
 from pathlib import Path
 from typing import List
+
 import jsontree
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import ResultSet, Tag
 
-from helpers.unity_version import (UnityVersion, parse_version_tuple,
-                                   versiontuple)
+from helpers.changelog_entry import ChangelogEntry
+from helpers.changelog_node import ChangelogNode, ChangelogNodeType
+from helpers.collection_helpers import unique
+from helpers.unity_version import UnityVersion, parse_version_tuple
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
 IGNORE_CATEGORIES=['System Requirements', 'System Requirements Changes']
 OUTPUT_FOLDER_NAME='./output'
 
-class ChangelogEntry:
-    def __init__(self, list_entry, override_modification = None):
-        self.parse_list_entry(list_entry, override_modification)
-
-    def parse_list_entry(self, list_entry, override_modification = None):
-        has_extended_markup = list_entry.p is not None
-        if has_extended_markup:
-            entry_p = list_entry.p
-            entry_text = entry_p.contents[0].replace('\n', ' ')
-        else:
-            entry_text = list_entry.text
-        regex_match = re.match("^((.*?)[?:\:]\s)?(Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(.*)", entry_text)
-        match_groups = regex_match.groups()
-        # groups:
-        # [1] (type): 2D, AI, Android, Linux, ... (optional)
-        # [2] (modification): Added, Removed, Fixed (optional)
-        # [3] (title): 'A crash that occurred when ...'  
-        if len(match_groups) != 4:
-            print("Failed to parse entry: %s"%entry_text)
-            return
-        if match_groups[1] is not None:
-            self.type = self.strip_type(match_groups[1])
-        else:
-            self.type = None
-        self.modification = override_modification if override_modification is not None else match_groups[2] # optional group
-        
-        title = self.capitalize(match_groups[3])
-        if has_extended_markup:
-            title_rest = map(lambda x: str(x), entry_p.contents[1:])
-            self.title = title + ''.join(title_rest)
-        else:
-            self.title = title
-
-    def capitalize(self, str):
-        if len(str) == 0:
-            return str
-        return str[0].upper() + str[1:]
-
-    def strip_type(self, type_text):
-        return re.sub("^(?:\(.*\) - )", '', type_text).strip()
 
 def is_main_category(category_name: str):
     for main_category_name in MAIN_CATEGORIES:
@@ -68,72 +33,13 @@ def is_header_tag_parent(header_tag1, header_tag2):
 def key_exists(json_tree:jsontree, key:str):
     return json_tree.get(key, None) is not None
 
-def create_entries_list(list_entries, override_modification = None) -> List['ChangelogEntry']:
+def create_entries_list(list_entries: ResultSet[Tag], override_modification = None) -> List['ChangelogEntry']:
     return list(map(lambda x: ChangelogEntry(x, override_modification), list_entries))
 
 def create_list_entry(changelog:ChangelogEntry):
     if changelog.modification is not None:
-        return { 'label': changelog.modification, 'title': changelog.title }
-    return "%s" % (changelog.title)
-
-class ChangelogNodeType(enum.Enum):
-    MainCategory = 0, # Known Issues, Changed in ...
-    ChangeType = 1, # Improvements, Changes, Fixes, ...
-    ModificationType = 2 # Added, Removed, ...
-
-class ChangelogNode:
-    name:str = ''
-    type:ChangelogNodeType = ChangelogNodeType.MainCategory
-    children = []
-    entries = []
-
-    def __init__(self, name='', type:ChangelogNodeType = ChangelogNodeType.MainCategory):
-        self.name = name
-        self.type = type
-        self.children = []
-        self.entries = []
-
-    def key_exists(self, name:str):
-        child_node = self.get(name)
-        return child_node is not None
-
-    def get(self, name:str) -> 'ChangelogNode':
-        if len(self.children) == 0:
-            return None
-        return next((f for f in self.children if f.name == name), None) 
-
-    def create_child(self, name:str, type:ChangelogNodeType = ChangelogNodeType.MainCategory):
-        new_node = ChangelogNode(name, type)
-        self.children.append(new_node)
-        return new_node
-
-    def add_child(self, new_node:'ChangelogNode'):
-        self.children.append(new_node)
-        return new_node
-
-    def add_children(self, new_node:list):
-        self.children += new_node
-
-    def add_entries(self, new_entries:list):
-        self.entries += new_entries
-
-    def toJSON(self):
-        d = dict()
-        for k,v in self.__dict__.items():
-            if k == 'children':
-                if len(v) != 0:
-                    d[k] = [o.toJSON() for o in v]
-            elif k == 'entries':
-                if len(v) != 0:
-                    d[k] = [o for o in v]
-            elif k == 'name':
-                if len(v) != 0:
-                    d[k] = v
-            elif k == 'type':
-                d[k] = v.name
-        return d
-
-from itertools import groupby
+        return { 'label': changelog.modification, 'title': changelog.content }
+    return "%s" % (changelog.content)
 
 
 def create_category_node(current_group):
@@ -143,11 +49,26 @@ def create_category_node(current_group):
     new_node.add_entries([create_list_entry(entry) for entry in entries])
     return new_node
 
+
+last_checked = []
+
 def get_modification_override(category_label):
-    if category_label == 'Fixes':
-        return 'Fixed'
-    if "Known Issues" in category_label:
-        return 'Bug'
+    override_keywords = { 'Fixed': 'Fixed', 'Fixes': 'Fixed', 
+    'Known issues': 'Bug', 'Known Issues': 'Bug', 
+    'Improvement': 'Improvements', 'Improvements': 'Improved', 
+    'API Changes': 'API Change', 
+    'Change':'Changed', 'Changes': 'Changed',  
+    'Feature': 'New', 'Features': 'New' }
+
+    for key, value in override_keywords.items():
+        if key in category_label:
+            return value
+
+    # debugging only
+    if category_label not in last_checked:
+        print('Not matching label: %s'%category_label)
+        last_checked.append(category_label)
+
     return None
 
 def scrape_changelog_page(version_name, file_name, changelog_url, slug):
@@ -160,8 +81,11 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     json_root['version'] = version_name
     json_root['slug'] = slug
     json_root['url'] = changelog_url
+    category_types = []
+    json_root['category_types'] = category_types 
     root_node = ChangelogNode()
 
+    change_types = []
     current_category_label = None # known issues, release notes, new entries since ...
     current_sub_category_label = None # improvements, changes, fixes, etc 
     current_main_category_node = None
@@ -190,12 +114,14 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
             continue
 
         # create a list of ChangelogEntry items
-        override_modification = get_modification_override(current_category_label) or get_modification_override(current_sub_category_label)
+        override_modification = get_modification_override(current_sub_category_label) or get_modification_override(current_category_label)
         changelog_entries = create_entries_list(list_entries, override_modification)
+        change_types += list(map(lambda x: x.modification, changelog_entries))
 
         # create a category node for each changelog entry that has 'type' assigned
         grouped_changelog_entries = list(map(create_category_node, groupby(changelog_entries, lambda f: (f.type if f.type is not None else 'General'))))
-            
+        category_types += list(map(lambda x: x.name, list(filter(lambda x: x.name not in category_types, grouped_changelog_entries))))
+
         # if the sub cateogry is the same as the main category, directly assign the list
         if current_sub_category_label == current_category_label:
             type = ChangelogNodeType.MainCategory if is_main_category(current_category_label) else ChangelogNodeType.ChangeType
@@ -218,6 +144,8 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
                 # add the entries (list of strings)
                 current_sub_category_node.add_children(grouped_changelog_entries)
 
+    
+    json_root['change_types'] = unique(change_types)
     json_root['categories'] = root_node.toJSON()
     json_text = jsontree.dumps(json_root, indent=3)
     write_json_file(file_name, json_text)
@@ -254,6 +182,12 @@ def sort_changelog_files(file_dict):
     version_tuple = parse_version_tuple(file_name_no_ext)
     return version_tuple
 
+def load_version_file(file_path:str):
+    f = open(file_path)
+    data = json.load(f)
+    f.close()
+    return data
+
 def create_catalog_entry(file_path:Path, unity_versions: list[UnityVersion]):
     entry = dict()
     version = next((f for f in unity_versions if f.file_name == file_path.name), "none")
@@ -262,6 +196,15 @@ def create_catalog_entry(file_path:Path, unity_versions: list[UnityVersion]):
     entry['slug'] = version.version_string
     return entry
 
+
+def accumulate_meta_data(files:list, category_types, change_types):
+    for file_path in files:
+        version_file = load_version_file(str(file_path))
+        version_category_types = list(filter(lambda x: x not in category_types, version_file['category_types']))
+        category_types += version_category_types
+        version_change_types = list(filter(lambda x: x not in change_types, version_file['change_types']))
+        change_types += version_change_types
+    
 def clear_output_folder():
     try:
         filelist = glob.glob(os.path.join(OUTPUT_FOLDER_NAME, "*"))
@@ -274,11 +217,18 @@ def write_catalog(unity_versions: list[UnityVersion]):
     # get the files in the output folder
     p = Path(OUTPUT_FOLDER_NAME).glob('**/*.json')
     # filter on files and ignore catalog file
-    files = [create_catalog_entry(x, unity_versions) for x in p if x.is_file() and "catalog" not in x.name]
+    version_files = list(filter(lambda x: x.is_file() and "catalog", p))
+    files = [create_catalog_entry(x, unity_versions) for x in version_files]
     files.sort(reverse=True, key=sort_changelog_files)
+    # get the meta data
+    category_types = []
+    change_types = []
+    accumulate_meta_data(version_files, category_types, change_types)
     # construct our json
     root_node = jsontree.jsontree() 
     root_node.date_modified = datetime.datetime.utcnow()
+    root_node.category_types = sorted(unique(category_types))
+    root_node.change_types = sorted(unique(change_types))
     root_node.changelogs = files
     # export to text and write
     json_text = jsontree.dumps(root_node, indent=3)

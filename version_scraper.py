@@ -9,7 +9,7 @@ from helpers.unity_version import UnityVersion, versiontuple
 # constants
 UNITY_WHATS_NEW_URL = "https://unity3d.com/unity/whats-new/"
 UNITY_BASE_URL = "https://unity3d.com/"
-MIN_UNITY_VERSION = versiontuple('5.0')
+MIN_UNITY_VERSION = versiontuple('5.1')
 
 def create_version_object(list_entry):
     version_name = list_entry.text
@@ -19,7 +19,7 @@ def create_version_object(list_entry):
 def filter_unity_version_entries(version_object: UnityVersion):
     """Filters unity version from our list
     
-    For now, we ignore version older than < 5.0 and "Archive"
+    For now, we ignore version older than < 5.1 and "Archive"
     """
     if not version_object.is_valid:
         return False
