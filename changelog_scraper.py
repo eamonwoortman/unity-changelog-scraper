@@ -172,7 +172,7 @@ def scrape_changelog_version(unity_version : UnityVersion, overwrite_output):
 def scrape_changelog_versions(unity_versions: list[UnityVersion]):
     for version in unity_versions:
         try:
-            scrape_changelog_version(version)
+            scrape_changelog_version(version, True)
         except Exception as ex:
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
     write_catalog(unity_versions)
