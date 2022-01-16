@@ -34,8 +34,10 @@ class TestFileDatas(TestCase):
     def assert_category_type_valid(self, category_type):
         self.longMessage = True
         self.assertFalse(not category_type, 'Category type is empty')
-        self.assertLess(len(category_type), 50,'Category type is too long: %s(%d)'%(category_type, len(category_type)))
-        self.assertLess(len(category_type.split()), 4, 'Category type is too long: %s(%d)'%(category_type, len(category_type)))
+        category_length = len(category_type)
+        self.assertLess(category_length, 50, f'Category type is too long: {category_type} ({category_length})')
+        word_count = len(category_type.split())
+        self.assertLess(word_count, 6, f'Category type contains too many words: {category_type} ({word_count})')
 
     def assert_categories_types_valid(self, changelog):
         categories_types = changelog['category_types']
