@@ -5,6 +5,8 @@ from bs4.element import Tag
 
 
 class ChangelogEntry:
+    regex = r"^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?[\s]?(?P<content>.*)$"
+
     def __init__(self, list_entry:Tag, override_modification):
         self.parse_list_entry(list_entry, override_modification)
 
@@ -21,7 +23,7 @@ class ChangelogEntry:
         #   [category, alt_category]: '2D, AI, Android, Linux, ...' (optional)
         #   [modification]: 'Added, Removed, Fixed' (optional)
         #   [content]: 'A crash that occurred when ...'  
-        regex_match = re.match("^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>[\w\s]*)(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>[\w\s]*)(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?\s?(?P<content>.*)", entry_text)
+        regex_match = re.match(self.regex, entry_text, re.MULTILINE)
         match_groups = regex_match.groupdict()
 
         # prefix group
