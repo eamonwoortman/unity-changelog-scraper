@@ -1,8 +1,10 @@
-
 import re
 
 from bs4.element import Tag
 
+from helpers.changelog_transformer import ChangelogTransformer
+
+transformer = ChangelogTransformer()
 
 class ChangelogEntry:
     regex = r"^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?[\s]?(?P<content>.*)$"
@@ -38,6 +40,12 @@ class ChangelogEntry:
             self.type = self.strip_type(match_groups['alt_category'])
         else:
             self.type = None
+            
+        # transform the type / category
+        if self.type is not None:
+            self.type = transformer.transform_category_type(self.type)
+        else: # otherwise, force it to a 'General' category
+            self.type = 'General'
 
         # modification group
         modification = None

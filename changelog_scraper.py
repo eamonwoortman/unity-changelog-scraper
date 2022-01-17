@@ -34,7 +34,7 @@ def key_exists(json_tree:jsontree, key:str):
     return json_tree.get(key, None) is not None
 
 def create_entries_list(list_entries: ResultSet[Tag], override_modification = None) -> List['ChangelogEntry']:
-    return list(map(lambda x: ChangelogEntry(x, override_modification), list_entries))
+    return list(map(lambda entry: ChangelogEntry(entry, override_modification), list_entries))
 
 def create_list_entry(changelog:ChangelogEntry):
     if changelog.modification is not None:
@@ -119,15 +119,16 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
         change_types += list(map(lambda x: x.modification, changelog_entries))
 
         # create a category node for each changelog entry that has 'type' assigned
-        grouped_changelog_entries = list(map(create_category_node, groupby(changelog_entries, lambda f: (f.type if f.type else 'General'))))
-        category_types += list(map(lambda x: x.name, list(filter(lambda x: x.name not in category_types, grouped_changelog_entries))))
+        grouped_changelog_entries = groupby(sorted(changelog_entries, key=lambda x: x.type), lambda f: f.type)
+        grouped_changelog_entries_nodes = list(map(create_category_node, grouped_changelog_entries))
+        category_types += list(map(lambda x: x.name, list(filter(lambda x: x.name not in category_types, grouped_changelog_entries_nodes))))
 
         # if the sub cateogry is the same as the main category, directly assign the list
         if current_sub_category_label == current_category_label:
-            type = ChangelogNodeType.MainCategory if is_main_category(current_category_label) else ChangelogNodeType.ChangeType
-            current_main_category_node = ChangelogNode(current_category_label, type)
+            node_type = ChangelogNodeType.MainCategory if is_main_category(current_category_label) else ChangelogNodeType.ChangeType
+            current_main_category_node = ChangelogNode(current_category_label, node_type)
             # add the entries (list of strings or objects), grouped by its type
-            current_main_category_node.add_children(grouped_changelog_entries)
+            current_main_category_node.add_children(grouped_changelog_entries_nodes)
             root_node.add_child(current_main_category_node)
         else: # otherwise, append it to the sub category node, but only if it exists
             # check if our sub category already exists
@@ -135,14 +136,14 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
             current_sub_category_node = current_main_category_node and current_main_category_node.get(current_sub_category_label)
             if current_sub_category_node is not None: 
                 # add the entries (list of strings)
-                current_sub_category_node.add_children(grouped_changelog_entries)
+                current_sub_category_node.add_children(grouped_changelog_entries_nodes)
             else: # otherwise, add a new entry
                 if current_main_category_node is None:
                     current_main_category_node = root_node.create_child(current_category_label, ChangelogNodeType.MainCategory)
                 if current_main_category_node.key_exists(current_sub_category_label) is False:
                     current_sub_category_node = current_main_category_node.create_child(current_sub_category_label, ChangelogNodeType.ChangeType)
                 # add the entries (list of strings)
-                current_sub_category_node.add_children(grouped_changelog_entries)
+                current_sub_category_node.add_children(grouped_changelog_entries_nodes)
 
     
     json_root['change_types'] = unique(change_types)
