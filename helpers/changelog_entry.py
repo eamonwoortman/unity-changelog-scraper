@@ -7,7 +7,7 @@ from helpers.changelog_transformer import ChangelogTransformer
 transformer = ChangelogTransformer()
 
 class ChangelogEntry:
-    regex = r"^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved)?[\s]?(?P<content>.*)$"
+    regex = r"^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>(?:(?!http|https)\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved|Obsoleted)?(?:(?:[ ]*\:[ ]*))?[\s]?(?P<content>.*)$"
 
     def __init__(self, list_entry:Tag, override_modification):
         self.parse_list_entry(list_entry, override_modification)
