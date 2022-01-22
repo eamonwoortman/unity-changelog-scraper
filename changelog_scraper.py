@@ -2,8 +2,10 @@ import datetime
 import glob
 import json
 import os
+import re
 from itertools import groupby
 from pathlib import Path
+from re import sub
 from typing import List
 
 import jsontree
@@ -17,7 +19,7 @@ from helpers.collection_helpers import unique
 from helpers.unity_version import UnityVersion, parse_version_tuple
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
-IGNORE_CATEGORIES=['System Requirements', 'System Requirements Changes']
+IGNORE_MAIN_CATEGORIES=['System Requirements', 'System Requirements Changes', 'Package changes']
 OUTPUT_FOLDER_NAME='./output'
 
 
@@ -129,8 +131,18 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
         else: # no subheader found, use the main category...            
             current_sub_category_label = current_category_label
 
+
+        # find the sub category's parent (if any)
+        sub_category_parent_label = None
+        neighbour_header_small_parent = neighbour_header_small.previous_sibling if neighbour_header_small is not None else None
+        if neighbour_header_small_parent is not None and neighbour_header_small_parent.name == 'h4':
+            sub_category_parent_label = neighbour_header_small_parent.text
         # skip if this category is to be ignored
-        if current_sub_category_label in IGNORE_CATEGORIES:
+        if sub_category_parent_label and ignore_main_category(sub_category_parent_label):
+            continue
+        
+        # skip if this category is to be ignored
+        if ignore_main_category(current_sub_category_label):
             continue
 
         # create a list of ChangelogEntry items
