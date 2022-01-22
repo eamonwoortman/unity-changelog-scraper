@@ -71,11 +71,31 @@ def get_modification_override(category_label):
 
     return None
 
+def ignore_main_category(sub_category_label):
+    for ignore_category in IGNORE_MAIN_CATEGORIES:
+        if re.search(ignore_category, sub_category_label, re.IGNORECASE):
+            print(f'ignoring category: {sub_category_label}')
+            return True
+    return False
+
+
+def bs_preprocess(html):
+    """remove distracting whitespaces and newline characters"""
+    pat = re.compile('(^[\s]+)|([\s]+$)', re.MULTILINE)
+    html = re.sub(pat, '', html)       # remove leading and trailing whitespaces
+    html = re.sub('\n', ' ', html)     # convert newlines to spaces
+                                    # this preserves newline delimiters
+    html = re.sub('[\s]+<', '<', html) # remove whitespaces before opening tags
+    html = re.sub('>[\s]+', '>', html) # remove whitespaces after closing tags
+    return html 
+
 def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
 
     page = requests.get(changelog_url)
-    soup = BeautifulSoup(page.content, 'html.parser')
+    # preprocess so we strip new-line tags
+    processed_content = bs_preprocess(page.content.decode('utf-8'))
+    soup = BeautifulSoup(processed_content, 'html.parser')
     
     json_root = jsontree.jsontree() # our root json tree
     json_root['version'] = version_name
