@@ -94,7 +94,8 @@ def bs_preprocess(html):
 def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
 
-    page = requests.get(changelog_url)
+    agent_headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
+    page = requests.get(changelog_url, headers=agent_headers)
     # preprocess so we strip new-line tags
     processed_content = bs_preprocess(page.content.decode('utf-8'))
     soup = BeautifulSoup(processed_content, 'html.parser')
@@ -119,7 +120,7 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
             continue
 
         # find the main category
-        neighbour_header = ul_element.find_previous_sibling('h3') or ul_element.find_previous_sibling('h2')
+        neighbour_header = ul_element.find_previous_sibling('h3') or ul_element.find_previous_sibling('h2') or ul_element.find_previous_sibling('h4')
         if current_category_label is None or current_category_label != neighbour_header.text:
             current_category_label = neighbour_header.text
 
