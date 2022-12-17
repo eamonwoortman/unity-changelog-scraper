@@ -31,16 +31,12 @@ jobs:
 #    - name: Test with pytest
 #      run: |
 #        pytest
-    - name: Set build arguments
-      if: github.ref == 'refs/heads/master'
-      run: |
-        echo "::set-env name=BUILD_ARGS::--output-folder github-pages"
-    - name: Set build arguments
-      if: github.ref != 'refs/heads/master'
-      run: |
-        echo "::set-env name=BUILD_ARGS::--no-full-set --output-folder github-pages"
     - name: Build
-      run: python unity_changelog_scraper.py $BUILD_ARGS 
+      if: github.ref != 'refs/heads/master' 
+      run: python unity_changelog_scraper.py --no-full-set --output-folder github-pages
+    - name: Upload logs on fail
+      if: github.ref == 'refs/heads/master'
+      run: python unity_changelog_scraper.py --output-folder github-pages
     - name: Upload GitHub Pages artifact
       uses: actions/upload-pages-artifact@v1.0.7
       with:
