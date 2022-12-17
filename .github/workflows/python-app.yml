@@ -5,9 +5,9 @@ name: Python application
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
 
 permissions:
   contents: read
@@ -26,23 +26,27 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest
+        pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
+#    - name: Test with pytest
+#      run: |
+#        pytest
+    - name: Set build arguments
+      if: github.ref == 'refs/heads/master'
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+        echo "::set-env name=BUILD_ARGS::--output-folder github-pages"
+    - name: Set build arguments
+      if: github.ref != 'refs/heads/master'
       run: |
-        pytest
-    - name: Upload GitHub Pages artifact
-      uses: actions/upload-pages-artifact@v1.0.7
-      with:
-        # Artifact name
-        name: github-pages # optional, default is github-pages
-        # Path of the directory containing the static assets.
-        path: output # default is _site/
-        # Duration after which artifact will expire in days.
-        retention-days: 1 # optional, default is 1      
+        echo "::set-env name=BUILD_ARGS::--full-set False --output-folder github-pages "
+    - name: Build
+      run: python unity_changelog_scraper.py $BUILD_ARGS 
+#    - name: Upload GitHub Pages artifact
+#      uses: actions/upload-pages-artifact@v1.0.7
+#      with:
+#        # Artifact name
+#        name: github-pages # optional, default is github-pages
+#        # Path of the directory containing the static assets.
+#        path: output # default is _site/
+#        # Duration after which artifact will expire in days.
+#        retention-days: 1 # optional, default is 1      
