@@ -20,8 +20,6 @@ from helpers.unity_version import UnityVersion, parse_version_tuple
 
 MAIN_CATEGORIES=['Release Notes', 'Fixes', 'Known Issues', 'Entries since']
 IGNORE_MAIN_CATEGORIES=['System Requirements', 'System Requirements Changes', 'Package changes']
-OUTPUT_FOLDER_NAME='./output'
-
 
 def is_main_category(category_name: str):
     for main_category_name in MAIN_CATEGORIES:
@@ -91,7 +89,7 @@ def bs_preprocess(html):
     html = re.sub('>[\s]+', '>', html) # remove whitespaces after closing tags
     return html 
 
-def scrape_changelog_page(version_name, file_name, changelog_url, slug):
+def scrape_changelog_page(output_path: str, version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
 
     agent_headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
@@ -182,34 +180,34 @@ def scrape_changelog_page(version_name, file_name, changelog_url, slug):
     json_root['change_types'] = unique(change_types)
     json_root['categories'] = root_node.toJSON()
     json_text = jsontree.dumps(json_root, indent=3)
-    write_json_file(file_name, json_text)
+    write_json_file(output_path, file_name, json_text)
 
 def ensure_dir(path: str):
     Path(path).mkdir(parents=True, exist_ok=True)
 
-def write_json_file(file_name, json_text):
-    ensure_dir(OUTPUT_FOLDER_NAME)
-    file_path = Path(OUTPUT_FOLDER_NAME).joinpath(file_name)
+def write_json_file(output_path, file_name, json_text):
+    ensure_dir(output_path)
+    file_path = Path(output_path).joinpath(file_name)
     with open(file_path, 'w') as f:
         f.write(json_text)
 
-def changelog_json_exists(file_name):
-    file_path = Path(OUTPUT_FOLDER_NAME).joinpath(file_name)
+def changelog_json_exists(output_path, file_name):
+    file_path = Path(output_path).joinpath(file_name)
     return Path.exists(file_path)
 
-def scrape_changelog_version(unity_version : UnityVersion, overwrite_output):
-    if (not overwrite_output and changelog_json_exists(unity_version.file_name)):
+def scrape_changelog_version(output_path: str, unity_version: UnityVersion, overwrite_output):
+    if (not overwrite_output and changelog_json_exists(output_path, unity_version.file_name)):
         print ('Skipping \'%s\', output already exists...'%unity_version.name)
         return
-    scrape_changelog_page(unity_version.name, unity_version.file_name, unity_version.url, unity_version.version_string)
+    scrape_changelog_page(output_path, unity_version.name, unity_version.file_name, unity_version.url, unity_version.version_string)
 
-def scrape_changelog_versions(unity_versions: list[UnityVersion]):
+def scrape_changelog_versions(output_path: str, unity_versions: list[UnityVersion]):
     for version in unity_versions:
         try:
-            scrape_changelog_version(version, True)
+            scrape_changelog_version(output_path, version, True)
         except Exception as ex:
             print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
-    write_catalog(unity_versions)
+    write_catalog(output_path, unity_versions)
 
 def sort_changelog_files(file_dict):
     file_name_no_ext = os.path.splitext(file_dict['file_name'])[0]
@@ -239,17 +237,18 @@ def accumulate_meta_data(files:list, category_types, change_types):
         version_change_types = list(filter(lambda x: x not in change_types, version_file['change_types']))
         change_types += version_change_types
     
-def clear_output_folder():
+    
+def clear_output_folder(output_folder):
     try:
-        filelist = glob.glob(os.path.join(OUTPUT_FOLDER_NAME, "*"))
+        filelist = glob.glob(os.path.join(output_folder, "*"))
         for f in filelist:
             os.remove(f)
     except:
         pass
 
-def write_catalog(unity_versions: list[UnityVersion]):
+def write_catalog(output_path: str, unity_versions: list[UnityVersion]):
     # get the files in the output folder
-    p = Path(OUTPUT_FOLDER_NAME).glob('**/*.json')
+    p = Path(output_path).glob('**/*.json')
     # filter on files and ignore catalog file
     version_files = list(filter(lambda x: x.is_file() and "catalog", p))
     files = [create_catalog_entry(x, unity_versions) for x in version_files]
@@ -266,4 +265,4 @@ def write_catalog(unity_versions: list[UnityVersion]):
     root_node.changelogs = files
     # export to text and write
     json_text = jsontree.dumps(root_node, indent=3)
-    write_json_file('catalog.json', json_text)
+    write_json_file(output_path, 'catalog.json', json_text)
