@@ -38,7 +38,7 @@ jobs:
 #        pytest
     - name: Build (develop)
       if: github.ref == 'refs/heads/develop' 
-      run: python unity_changelog_scraper.py --no-full-set --output-folder github-pages --print_versions
+      run: python unity_changelog_scraper.py --no-full-set --output-folder github-pages --print-versions
     - name: Build (master)
       if: github.ref == 'refs/heads/master'
       run: python unity_changelog_scraper.py --output-folder github-pages
