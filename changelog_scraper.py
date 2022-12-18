@@ -240,11 +240,14 @@ def accumulate_meta_data(files:list, category_types, change_types):
     
 def clear_output_folder(output_folder):
     try:
-        filelist = glob.glob(os.path.join(output_folder, "*"))
+        searchPath = os.path.join(output_folder, "*")
+        print(f'looking to remove all files from: {searchPath}')
+        filelist = glob.glob(searchPath)
         for f in filelist:
+            print(f'removing {f} from output folder: {output_folder}')
             os.remove(f)
-    except:
-        pass
+    except Exception as ex: 
+        print(f'could not delete from output folder, ex: {ex}')
 
 def write_catalog(output_path: str, unity_versions: list[UnityVersion]):
     # get the files in the output folder
