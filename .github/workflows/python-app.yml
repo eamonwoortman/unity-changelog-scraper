@@ -43,13 +43,13 @@ jobs:
     - name: Build (master)
       if: github.ref == 'refs/heads/master'
       run: python unity_changelog_scraper.py --output-folder github-pages
-    #- name: Github Pages Directory Listing
+    - name: Github Pages Directory Listing
       # You may pin to the exact commit or the version.
       # uses: jayanta525/github-pages-directory-listing@00c9817e589e193a844dabbdc6a179d1f77d4376
-    #  uses: jayanta525/github-pages-directory-listing@v2.0.0
-    #  with:
+      uses: jayanta525/github-pages-directory-listing@v2.0.0
+      with:
         # folder to start index generations
-    #    FOLDER: github-pages 
+        FOLDER: github-pages 
     - name: GitHub Pages
       # You may pin to the exact commit or the version.
       # uses: crazy-max/ghaction-github-pages@c0d7ff0487ee0415efb7f32dab10ea880330b1dd
@@ -82,9 +82,9 @@ jobs:
         # Allow Jekyll to build your site
         # jekyll: # optional, default is true
         # If enabled, nothing will be pushed
-        dry_run: true # optional, default is false
+        dry_run: false # optional, default is false
         # Enable verbose output
-        verbose: true # optional, default is false
+        verbose: false # optional, default is false
 
 # github_token: ${{ secrets.GITHUB_TOKEN }} # optional
 
