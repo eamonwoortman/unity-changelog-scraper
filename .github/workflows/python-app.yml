@@ -50,10 +50,36 @@ jobs:
     #  with:
         # folder to start index generations
     #    FOLDER: github-pages 
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v3
-      #if: ${{ github.ref == 'refs/heads/main' }}
+    - name: GitHub Pages v3
+      # You may pin to the exact commit or the version.
+      # uses: peaceiris/actions-github-pages@b80a30e9bf3c1ec596532c3813f0aff094f555e2
+      uses: peaceiris/actions-github-pages@v3.1.12
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./github-pages
-        keep_history: false 
+        # 
+        #deploy_key: # optional
+        # 
+        #github_token: # optional
+        # 
+        #personal_token: # optional
+        # 
+        #publish_branch: # optional, default is gh-pages
+        # 
+        publish_dir: github-pages # optional, default is public
+        # 
+        # external_repository: # optional
+        # If empty commits should be made to the publication branch
+        # allow_empty_commit: # optional, default is false
+        # If existing files in the publish branch should be not removed before deploying
+        keep_files: false # optional, default is false
+        # Keep only the latest commit on a GitHub Pages branch
+        #force_orphan: # optional, default is false
+        # Set Git user.name
+        #user_name: # optional
+        # Set Git user.email
+        #user_email: # optional
+        # Set custom commit message
+        #commit_message: # optional
+        # Set tag name
+        #tag_name: # optional
+        # Set tag message
+        #tag_message: # optional
