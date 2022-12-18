@@ -15,13 +15,9 @@ def semver_type(string):
 
 
 
-def test_scrapes(output_path: str, unity_versions: list[UnityVersion], overwrite_output: bool, test_full_set: bool):
-    for version in version_objects:
+def test_scrapes(output_path: str, unity_versions: list[UnityVersion], overwrite_output: bool):
+    for version in unity_versions:
         scrape_changelog_version(output_path, version, overwrite_output)
-
-    #for i in range(10, len(unity_versions), 5):
-    #    scrape_changelog_version(unity_versions[i], overwrite_output)
-
     write_catalog(output_path, unity_versions)
 
 def main():
@@ -62,6 +58,7 @@ def main():
     # get unity versions
     unity_versions = find_unity_versions(min_unity_version, args.full_set)
     if args.print_versions:
+        print(f"processing {len(unity_versions)} changelogs")
         print([x.name for x in unity_versions])
 
     # scrape each changelog page
