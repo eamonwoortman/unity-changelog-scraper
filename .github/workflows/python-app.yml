@@ -48,13 +48,6 @@ jobs:
       with:
         # folder to start index generations
         FOLDER: github-pages 
-    - name: Cache
-      uses: actions/cache@v3.2.0-beta.1
-      with:
-        # A list of files, directories, and wildcard patterns to cache and restore
-        path: github-pages
-        # An explicit key for restoring and saving the cache
-        key: ${{ runner.os }}-scraper 
     - name: Upload GitHub Pages artifact
       uses: actions/upload-pages-artifact@v1.0.7  
       with:
