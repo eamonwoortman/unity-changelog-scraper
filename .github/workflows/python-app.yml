@@ -50,43 +50,34 @@ jobs:
       with:
         # folder to start index generations
         FOLDER: github-pages 
-    - name: GitHub Pages
-      # You may pin to the exact commit or the version.
-      # uses: crazy-max/ghaction-github-pages@c0d7ff0487ee0415efb7f32dab10ea880330b1dd
-      uses: crazy-max/ghaction-github-pages@v3.1.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cache
+      uses: actions/cache@v3.2.0-beta.1
       with:
-        # Git domain (default github.com)
-        #domain: # optional, default is github.com
-        # GitHub repository where assets will be deployed (default $GITHUB_REPOSITORY)
-        #repo: # optional
-        # Git branch where assets will be deployed
-        #target_branch: # optional, default is gh-pages
-        # Create incremental commit instead of doing push force
-        #keep_history: false # optional, default is false
-        # Allow an empty commit to be created
-        #allow_empty_commit: # optional, default is true
-        # Build directory to deploy
-        build_dir: github-pages
-        # Whether to treat build_dir as an absolute path
-        # absolute_build_dir: # optional, default is false
-        # If enabled, the content of symbolic links will be copied
-        # follow_symlinks: # optional, default is false
-        # The committer name and email address
-        # committer: # optional
-        # The author name and email address
-        # author: # optional
-        # Commit message
-        # commit_message: # optional
-        # Write the given domain name to the CNAME file
-        # fqdn: # optional
-        # Allow Jekyll to build your site
-        # jekyll: # optional, default is true
-        # If enabled, nothing will be pushed
-        dry_run: false # optional, default is false
-        # Enable verbose output
-        verbose: false # optional, default is false
-
-# github_token: ${{ secrets.GITHUB_TOKEN }} # optional
-
+        # A list of files, directories, and wildcard patterns to cache and restore
+        path: github-pages
+        # An explicit key for restoring and saving the cache
+        key: ${{ runner.os }}-scraper 
+        # An ordered list of keys to use for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case.
+        # restore-keys: # optional
+        # The chunk size used to split up large files during upload, in bytes
+        #upload-chunk-size: # optional 
+    - name: Deploy GitHub Pages site
+      uses: actions/deploy-pages@v1.2.3
+      #with:
+        # Should this action only emit build telemetry instead of deploying the build artifact?
+        # emit_telemetry: # optional, default is false
+        # The status of the previous build.
+        # conclusion: # optional
+        # GitHub token
+        # token: # default is ${{ github.token }}
+        # Time in milliseconds after which to timeout and cancel the deployment (default: 10 minutes)
+        # timeout: # optional, default is 600000
+        # Maximum number of status report errors before cancelling a deployment (default: 10)
+        # error_count: # optional, default is 10
+        # Time in milliseconds between two deployment status report (default: 5 seconds)
+        # reporting_interval: # optional, default is 5000
+        # Name of the artifact to deploy
+        # artifact_name: # optional, default is github-pages
+        # Is this attempting to deploy a pull request as a GitHub Pages preview site? (NOTE: This feature is only in alpha currently and is not available to the public!)
+        # preview: # optional, default is false
