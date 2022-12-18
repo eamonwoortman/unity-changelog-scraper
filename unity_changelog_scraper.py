@@ -16,29 +16,6 @@ def semver_type(string):
 
 
 def test_scrapes(output_path: str, unity_versions: list[UnityVersion], overwrite_output: bool, test_full_set: bool):
-    test_versions = [
-#       '2022.1.0.13', 
-#       '2021.1.21', 
-#       '2021.2.5', 
-#       '5.1.2',
-#       '5.6.4',
-#        '5.2.1',
-#        '2021.2.0'    
-#        '2018.2.4'
-    ]
-    
-    print('-'*10)
-    print('Starting scrape test with \033[1m%s\033[0m test set'%('full' if test_full_set else 'partial'))
-    print('-'*10)
-
-    test_specific_version = len(test_versions) > 0
-    if test_specific_version:
-        version_objects = (x for x in unity_versions if any(x.version_string == w for w in test_versions))
-    elif test_full_set:
-        version_objects = unity_versions
-    else:
-        version_objects = unity_versions[slice(10, len(unity_versions), 5)]
-
     for version in version_objects:
         scrape_changelog_version(output_path, version, overwrite_output)
 
@@ -80,15 +57,14 @@ def main():
     overwrite_output = args.overwrite_output
 
     # clear our output folder
-    
     clear_output_folder(output_path)
 
     # get unity versions
-    unity_versions = find_unity_versions(min_unity_version)
+    unity_versions = find_unity_versions(min_unity_version, args.full_set)
     if args.print_versions:
         print([x.name for x in unity_versions])
 
     # scrape each changelog page
-    test_scrapes(output_path, unity_versions, overwrite_output, args.full_set)
+    test_scrapes(output_path, unity_versions, overwrite_output)
 
 main()

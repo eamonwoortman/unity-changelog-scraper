@@ -32,7 +32,7 @@ def filter_unity_version_entries(version_object: UnityVersion, min_unity_version
         return False
     return True
     
-def find_unity_versions(min_unity_version:versiontuple = None):
+def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool):
     """Return a list of "UnityVersion" objects
 
     Queries the Unity 'whats new' website and scrapes a list of Unity versions and their changelog urls
@@ -43,5 +43,28 @@ def find_unity_versions(min_unity_version:versiontuple = None):
     sidebar_div = soup.find('div', {"class", 'releases-item-list'})
     version_li_entries = sidebar_div.findAll('a')
     version_list = list(map(lambda x: create_version_object(x), version_li_entries))
-    filtered_version_list = list(filter(lambda x: filter_unity_version_entries(x, min_unity_version), version_list))
-    return filtered_version_list
+    version_objects = list(filter(lambda x: filter_unity_version_entries(x, min_unity_version), version_list))
+
+    # for testing specific versions, 
+    test_versions = [
+#       '2022.1.0.13', 
+#       '2021.1.21', 
+#       '2021.2.5', 
+#       '5.1.2',
+#       '5.6.4',
+#        '5.2.1',
+#        '2021.2.0'    
+#        '2018.2.4'
+    ]
+    
+    print('-'*10)
+    print('Starting scrape test with \033[1m%s\033[0m test set'%('full' if test_full_set else 'partial'))
+    print('-'*10)
+
+    test_specific_version = len(test_versions) > 0
+    if test_specific_version:
+        version_objects = (x for x in version_objects if any(x.version_string == w for w in test_versions))
+    elif not test_full_set:
+        version_objects = version_objects[slice(10, len(version_objects), 5)]
+
+    return version_objects
