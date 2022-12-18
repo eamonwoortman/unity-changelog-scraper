@@ -62,6 +62,8 @@ jobs:
         # restore-keys: # optional
         # The chunk size used to split up large files during upload, in bytes
         #upload-chunk-size: # optional 
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v1.0.7  
     - name: Deploy GitHub Pages site
       uses: actions/deploy-pages@v1.2.3
       #with:
