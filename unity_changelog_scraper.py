@@ -35,6 +35,9 @@ def main():
     # Optional flag: --min-version or -m
     parser.add_argument('--min-version', '-m', type=semver_type, help='Minimal Unity Version to scrape from')
 
+    # Optional flag: --max-scrapes or -m
+    parser.add_argument('--max-scrapes', '-s', type=int, default=-1, help='Maximum amount of versions to scrape')
+
     # Required parameter: output folder (default value: 'output')
     parser.add_argument('--output-folder', default='output', nargs='?', help='Output folder')
 
@@ -45,6 +48,7 @@ def main():
     print(f"overwrite_output: {args.overwrite_output}")
     print(f"full_set: {args.full_set}")
     print(f"min_version: {args.min_version}")
+    print(f"max_scrapes: {args.max_scrapes}")
     output_folder = args.output_folder if 'output_folder' in args else 'output'
     output_path = output_folder if os.path.isabs(output_folder) else os.path.abspath(output_folder)
     print(f"output_folder: {output_folder}, output_path: {output_path}")
@@ -56,7 +60,7 @@ def main():
     clear_output_folder(output_path)
 
     # get unity versions
-    unity_versions = find_unity_versions(min_unity_version, args.full_set)
+    unity_versions = find_unity_versions(min_unity_version, args.full_set, args.max_scrapes)
     if args.print_versions:
         print(f"processing {len(unity_versions)} changelogs")
         print([x.name for x in unity_versions])

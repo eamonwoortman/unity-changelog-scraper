@@ -32,7 +32,7 @@ def filter_unity_version_entries(version_object: UnityVersion, min_unity_version
         return False
     return True
     
-def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool):
+def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max_scrapes: int):
     """Return a list of "UnityVersion" objects
 
     Queries the Unity 'whats new' website and scrapes a list of Unity versions and their changelog urls
@@ -66,5 +66,9 @@ def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool):
         version_objects = (x for x in version_objects if any(x.version_string == w for w in test_versions))
     elif not test_full_set:
         version_objects = version_objects[slice(10, len(version_objects), 5)]
+
+    # clamp the maximum amount of versions if max_scrapes is defined
+    num_versions = max_scrapes if max_scrapes != -1 else len(version_objects)
+    version_objects = version_objects[0:num_versions]
 
     return version_objects
