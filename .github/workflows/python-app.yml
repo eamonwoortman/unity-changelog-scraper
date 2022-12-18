@@ -50,36 +50,41 @@ jobs:
     #  with:
         # folder to start index generations
     #    FOLDER: github-pages 
-    - name: GitHub Pages v3
+    - name: GitHub Pages
       # You may pin to the exact commit or the version.
-      # uses: peaceiris/actions-github-pages@b80a30e9bf3c1ec596532c3813f0aff094f555e2
-      uses: peaceiris/actions-github-pages@v3.1.12
+      # uses: crazy-max/ghaction-github-pages@c0d7ff0487ee0415efb7f32dab10ea880330b1dd
+      uses: crazy-max/ghaction-github-pages@v3.1.0
       with:
-        # 
-        #deploy_key: # optional
-        # 
-        github_token: ${{ secrets.GITHUB_TOKEN }} # optional
-        # 
-        #personal_token: # optional
-        # 
-        #publish_branch: # optional, default is gh-pages
-        # 
-        publish_dir: github-pages # optional, default is public
-        # 
-        # external_repository: # optional
-        # If empty commits should be made to the publication branch
-        # allow_empty_commit: # optional, default is false
-        # If existing files in the publish branch should be not removed before deploying
-        keep_files: false # optional, default is false
-        # Keep only the latest commit on a GitHub Pages branch
-        #force_orphan: # optional, default is false
-        # Set Git user.name
-        #user_name: # optional
-        # Set Git user.email
-        #user_email: # optional
-        # Set custom commit message
-        #commit_message: # optional
-        # Set tag name
-        #tag_name: # optional
-        # Set tag message
-        #tag_message: # optional
+        # Git domain (default github.com)
+        #domain: # optional, default is github.com
+        # GitHub repository where assets will be deployed (default $GITHUB_REPOSITORY)
+        #repo: # optional
+        # Git branch where assets will be deployed
+        #target_branch: # optional, default is gh-pages
+        # Create incremental commit instead of doing push force
+        #keep_history: false # optional, default is false
+        # Allow an empty commit to be created
+        #allow_empty_commit: # optional, default is true
+        # Build directory to deploy
+        build_dir: github-pages
+        # Whether to treat build_dir as an absolute path
+        # absolute_build_dir: # optional, default is false
+        # If enabled, the content of symbolic links will be copied
+        # follow_symlinks: # optional, default is false
+        # The committer name and email address
+        # committer: # optional
+        # The author name and email address
+        # author: # optional
+        # Commit message
+        # commit_message: # optional
+        # Write the given domain name to the CNAME file
+        # fqdn: # optional
+        # Allow Jekyll to build your site
+        # jekyll: # optional, default is true
+        # If enabled, nothing will be pushed
+        dry_run: true # optional, default is false
+        # Enable verbose output
+        verbose: true # optional, default is false
+
+# github_token: ${{ secrets.GITHUB_TOKEN }} # optional
+
