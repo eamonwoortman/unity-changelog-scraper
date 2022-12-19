@@ -54,4 +54,4 @@ jobs:
     - name: Deploy GitHub Pages site
       uses: actions/deploy-pages@v1.2.3
       with:
-        name: github-pages-artifact
+        artifact_name: github-pages-artifact
