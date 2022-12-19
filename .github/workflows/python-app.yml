@@ -51,9 +51,7 @@ jobs:
       pages: write
       id-token: write
     steps:
-    - name: Get artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: github-pages-artifact
     - name: Deploy GitHub Pages site
       uses: actions/deploy-pages@v1.2.3
+      with:
+        name: github-pages-artifact
