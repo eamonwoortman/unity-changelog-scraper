@@ -91,7 +91,6 @@ def bs_preprocess(html):
 
 def scrape_changelog_page(output_path: str, version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
-
     agent_headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
     page = requests.get(changelog_url, headers=agent_headers)
     # preprocess so we strip new-line tags

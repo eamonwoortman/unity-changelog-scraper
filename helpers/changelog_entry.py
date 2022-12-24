@@ -43,7 +43,8 @@ class ChangelogEntry:
             
         # transform the type / category
         if self.type is not None:
-            self.type = transformer.transform_category_type(self.type)
+            transformed_type = transformer.transform_category_type(self.type)
+            self.type = transformed_type
         else: # otherwise, force it to a 'General' category
             self.type = 'General'
 

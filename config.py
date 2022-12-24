@@ -16,7 +16,7 @@ transformers = {
         { "pattern": r"^(?i)(code\s?editors?)$", "replacement": "Code Editors" },
         { "pattern": r"^(?i)(collab|Collaborate|Collaboration)$", "replacement": "Collaborate" },
         { "pattern": r"^(?i)(deployment(\smanagement)?)$", "replacement": "Deployment Management" },
-        { "pattern": r"^(D3D|D3D11|Direct3D 11|DX11|DirectX 11)$", "replacement": "DirectX 11" },
+        { "pattern": r"^(D3D|D3D11|Direct3D\s?11|DX11|DirectX\s11)$", "replacement": "DirectX 11" },
         { "pattern": r"^(D3D12|DirectX\s?12|DX12)$", "replacement": "DirectX 12" },
         { "pattern": r"^(D3D9)$", "replacement": "DirectX 9" },
         { "pattern": r"^(?i)(editor\s?analytics)$", "replacement": "Editor Analytics" },
