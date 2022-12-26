@@ -6,6 +6,8 @@ from version_scraper import find_unity_versions
 import argparse
 import re
 import os
+import aiohttp
+import asyncio
 
 def semver_type(string):
     # Use a regular expression to check that the string is a valid SemVer string
@@ -13,11 +15,12 @@ def semver_type(string):
         raise argparse.ArgumentTypeError(f"'{string}' is not a valid SemVer string")
     return string
 
+async def scrape_pages(output_path: str, unity_versions: list[UnityVersion]):
+    async with aiohttp.ClientSession() as session:
+        await asyncio.gather(*[scrape_changelog_version(session, output_path, unity_version) for unity_version in unity_versions])
+    #for version in unity_versions:
+    #    scrape_changelog_version(output_path, version, overwrite_output)
 
-
-def test_scrapes(output_path: str, unity_versions: list[UnityVersion], overwrite_output: bool):
-    for version in unity_versions:
-        scrape_changelog_version(output_path, version, overwrite_output)
     write_catalog(output_path, unity_versions)
 
 def main():
@@ -25,9 +28,6 @@ def main():
 
     # Optional flag: --print-versions or -p
     parser.add_argument('--print-versions', '-p', action='store_true', help='Print available versions')
-
-    # Optional flag: --overwrite-output or -o
-    parser.add_argument('--overwrite-output', '-o', action='store_true', default=True, help='Overwrite existing output')
 
     # Optional flag: --full-set
     parser.add_argument('--full-set', action=argparse.BooleanOptionalAction, default=True, help='Scrape with full versions set')
@@ -45,7 +45,6 @@ def main():
 
     # Print the values of the arguments
     print(f"print_versions: {args.print_versions}")
-    print(f"overwrite_output: {args.overwrite_output}")
     print(f"full_set: {args.full_set}")
     print(f"min_version: {args.min_version}")
     print(f"max_scrapes: {args.max_scrapes}")
@@ -54,7 +53,6 @@ def main():
     print(f"output_folder: {output_folder}, output_path: {output_path}")
 
     min_unity_version = versiontuple(args.min_version) if args.min_version else None
-    overwrite_output = args.overwrite_output
 
     # clear our output folder
     clear_output_folder(output_path)
@@ -66,6 +64,7 @@ def main():
         print([x.name for x in unity_versions])
 
     # scrape each changelog page
-    test_scrapes(output_path, unity_versions, overwrite_output)
+    asyncio.run(scrape_pages(output_path, unity_versions))
+
 
 main()

@@ -12,7 +12,7 @@ import jsontree
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
-
+from aiohttp import ClientSession
 from helpers.changelog_entry import ChangelogEntry
 from helpers.changelog_node import ChangelogNode, ChangelogNodeType
 from helpers.collection_helpers import unique
@@ -89,12 +89,17 @@ def bs_preprocess(html):
     html = re.sub('>[\s]+', '>', html) # remove whitespaces after closing tags
     return html 
 
-def scrape_changelog_page(output_path: str, version_name, file_name, changelog_url, slug):
+async def scrape_changelog_page(session: ClientSession, output_path: str, version_name, file_name, changelog_url, slug):
     print('Scraping version from url: %s'%changelog_url)
-    agent_headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
-    page = requests.get(changelog_url, headers=agent_headers)
+    try:
+        async with session.get(url=changelog_url) as response:
+            page = await response.read()
+    except Exception as e:
+        print("Unable to get url {} due to {}.".format(changelog_url, e.__class__))
+        return
+
     # preprocess so we strip new-line tags
-    processed_content = bs_preprocess(page.content.decode('utf-8'))
+    processed_content = bs_preprocess(page.decode('utf-8'))
     soup = BeautifulSoup(processed_content, 'html.parser')
     
     json_root = jsontree.jsontree() # our root json tree
@@ -194,22 +199,11 @@ def changelog_json_exists(output_path, file_name):
     file_path = Path(output_path).joinpath(file_name)
     return Path.exists(file_path)
 
-def scrape_changelog_version(output_path: str, unity_version: UnityVersion, overwrite_output):
-    if (not overwrite_output and changelog_json_exists(output_path, unity_version.file_name)):
-        print ('Skipping \'%s\', output already exists...'%unity_version.name)
-        return
-    scrape_changelog_page(output_path, unity_version.name, unity_version.file_name, unity_version.url, unity_version.version_string)
+async def scrape_changelog_version(session: ClientSession, output_path: str, unity_version: UnityVersion):
+    await scrape_changelog_page(session, output_path, unity_version.name, unity_version.file_name, unity_version.url, unity_version.version_string)
 
-def scrape_changelog_versions(output_path: str, unity_versions: list[UnityVersion]):
-    for version in unity_versions:
-        try:
-            scrape_changelog_version(output_path, version, True)
-        except Exception as ex:
-            print('Failed to scrape version "%s", exception: %s'%(version['name'], ex))
-    write_catalog(output_path, unity_versions)
-
-def sort_changelog_files(file_dict):
-    file_name_no_ext = os.path.splitext(file_dict['file_name'])[0]
+def sort_changelog_files(file_path):
+    file_name_no_ext = file_path.stem
     version_tuple = parse_version_tuple(file_name_no_ext)
     return version_tuple
 
@@ -228,14 +222,14 @@ def create_catalog_entry(file_path:Path, unity_versions: list[UnityVersion]):
     return entry
 
 
-def accumulate_meta_data(files:list, category_types, change_types):
+def accumulate_meta_data(files:list, category_types, change_types, changelogs):
     for file_path in files:
         version_file = load_version_file(str(file_path))
+        changelogs.append(version_file)
         version_category_types = list(filter(lambda x: x not in category_types, version_file['category_types']))
         category_types += version_category_types
         version_change_types = list(filter(lambda x: x not in change_types, version_file['change_types']))
         change_types += version_change_types
-    
     
 def clear_output_folder(output_folder):
     try:
@@ -253,18 +247,20 @@ def write_catalog(output_path: str, unity_versions: list[UnityVersion]):
     p = Path(output_path).glob('**/*.json')
     # filter on files and ignore catalog file
     version_files = list(filter(lambda x: x.is_file() and "catalog", p))
-    files = [create_catalog_entry(x, unity_versions) for x in version_files]
-    files.sort(reverse=True, key=sort_changelog_files)
+    version_files.sort(reverse=True, key=sort_changelog_files)
+    versions = [create_catalog_entry(x, unity_versions) for x in version_files]
     # get the meta data
     category_types = []
     change_types = []
-    accumulate_meta_data(version_files, category_types, change_types)
+    changelogs = []
+    accumulate_meta_data(version_files, category_types, change_types, changelogs)
     # construct our json
     root_node = jsontree.jsontree() 
     root_node.date_modified = datetime.datetime.utcnow()
     root_node.category_types = sorted(unique(category_types))
     root_node.change_types = sorted(unique(change_types))
-    root_node.changelogs = files
+    root_node.versions = versions
+    root_node.changelogs = changelogs
     # export to text and write
     json_text = jsontree.dumps(root_node, indent=3)
-    write_json_file(output_path, 'catalog.json', json_text)
+    write_json_file(output_path, 'changelog-store.json', json_text)
