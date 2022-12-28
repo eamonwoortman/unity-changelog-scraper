@@ -18,10 +18,7 @@ def semver_type(string):
 async def scrape_pages(output_path: str, unity_versions: list[UnityVersion]):
     async with aiohttp.ClientSession() as session:
         await asyncio.gather(*[scrape_changelog_version(session, output_path, unity_version) for unity_version in unity_versions])
-    #for version in unity_versions:
-    #    scrape_changelog_version(output_path, version, overwrite_output)
-
-    write_catalog(output_path, unity_versions)
+    # write_catalog(output_path, unity_versions)
 
 def main():
     parser = argparse.ArgumentParser(description='Scrape Unity editor changelogs.')
