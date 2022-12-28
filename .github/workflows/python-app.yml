@@ -33,19 +33,10 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Build (develop)
       if: ${{ github.ref == 'refs/heads/develop' || github.event.debug }}
-      run: python unity_changelog_scraper.py --no-full-set --output-folder github-pages --print-versions --max-scrapes 6
+      run: python unity_changelog_scraper.py --no-full-set --output-folder output --print-versions --max-scrapes 6
     - name: Build (master)
       if: ${{ github.ref == 'refs/heads/master' && !github.event.debug }}
-      run: python unity_changelog_scraper.py --output-folder github-pages
-    - name: Github Pages Directory Listing
-      uses: jayanta525/github-pages-directory-listing@v2.0.0
-      with:
-        # folder to start index generations
-        FOLDER: github-pages 
-    - name: Upload GitHub Pages artifact
-      uses: actions/upload-pages-artifact@v1.0.7
-      with:
-        path: github-pages/
+      run: python unity_changelog_scraper.py --output-folder output
   deploy:
     environment:
       name: github-pages
@@ -53,11 +44,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
-#    steps:
-#    - name: Deploy GitHub Pages site
-#      uses: actions/deploy-pages@v1.2.3
-#      with:
-#        artifact_name: github-pages-artifact
+      - name: Mongo import files
+        # You may pin to the exact commit or the version.
+        uses: eamonwoortman/mongo-import-action@0.1
+        with:
+          # A file, directory or wildcard pattern that describes what to upload
+          path: './output'
+          # MongoDB connection string
+          uri: '${{ secrets.MONGODB_URI }}'
+          # Database name
+          database: '${{ secrets.MONGODB_DATABASE }}' 
+          # Collection name
+          collection: '${{ secrets.MONGODB_COLLECTION }}' 
+          # Do not clear the collection before importing new files.
+          keep-collection: false 
+          if-no-files-found: error
