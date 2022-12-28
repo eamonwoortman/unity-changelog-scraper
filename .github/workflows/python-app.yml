@@ -46,10 +46,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download a single artifact
+      - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
           name: changelogs-output
+          path: ./output
       - name: Mongo import files
         # You may pin to the exact commit or the version.
         uses: eamonwoortman/mongo-import-action@0.1
