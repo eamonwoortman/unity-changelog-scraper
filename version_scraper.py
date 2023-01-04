@@ -56,7 +56,9 @@ def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max
     version_objects = sorted(version_objects, key=lambda x: x.version_tuple)
 
     # clamp the maximum amount of versions if max_scrapes is defined
-    num_versions = max_scrapes if max_scrapes != -1 else len(version_objects)
-    version_objects = version_objects[0:num_versions]
+    num_versions = len(version_objects)
+    if max_scrapes is not -1:
+        num_versions = max(1, min(max_scrapes, num_versions))
+        version_objects = version_objects[0:num_versions]
 
     return version_objects
