@@ -45,27 +45,15 @@ def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max
     version_list = list(map(lambda x: create_version_object(x), version_li_entries))
     version_objects = list(filter(lambda x: filter_unity_version_entries(x, min_unity_version), version_list))
 
-    # for testing specific versions, 
-    test_versions = [
-#       '2022.1.0.13', 
-#       '2021.1.21', 
-#       '2021.2.5', 
-#       '5.1.2',
-#       '5.6.4',
-#        '5.2.1',
-#        '2021.2.0'    
-#        '2018.2.4'
-    ]
-    
     print('-'*10)
     print('Starting scrape test with \033[1m%s\033[0m test set'%('full' if test_full_set else 'partial'))
     print('-'*10)
 
-    test_specific_version = len(test_versions) > 0
-    if test_specific_version:
-        version_objects = (x for x in version_objects if any(x.version_string == w for w in test_versions))
-    elif not test_full_set:
+    if not test_full_set:
         version_objects = version_objects[slice(10, len(version_objects), 5)]
+
+    # sort
+    version_objects = sorted(version_objects, key=lambda x: x.version_tuple)
 
     # clamp the maximum amount of versions if max_scrapes is defined
     num_versions = max_scrapes if max_scrapes != -1 else len(version_objects)
