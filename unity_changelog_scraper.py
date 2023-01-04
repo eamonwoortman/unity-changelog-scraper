@@ -8,6 +8,7 @@ import re
 import os
 import aiohttp
 import asyncio
+import platform
 
 def semver_type(string):
     # Use a regular expression to check that the string is a valid SemVer string
@@ -59,6 +60,10 @@ def main():
     if args.print_versions:
         print(f"processing {len(unity_versions)} changelogs")
         print([x.name for x in unity_versions])
+
+    # workaround for Windows bug
+    if platform.system()=='Windows':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     # scrape each changelog page
     asyncio.run(scrape_pages(output_path, unity_versions))
