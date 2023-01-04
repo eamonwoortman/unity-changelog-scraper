@@ -18,7 +18,7 @@ def semver_type(string):
 
 async def scrape_pages(output_path: str, unity_versions: list[UnityVersion]):
     async with aiohttp.ClientSession() as session:
-        await asyncio.gather(*[scrape_changelog_version(session, output_path, unity_version) for unity_version in unity_versions])
+        await asyncio.gather(*[scrape_changelog_version(session, output_path, idx, unity_version) for idx, unity_version in enumerate(unity_versions)])
     # write_catalog(output_path, unity_versions)
 
 def main():

@@ -123,7 +123,7 @@ def get_release_date_from_page(soup: BeautifulSoup, slug: str):
         return 'Unknown'
     return time_elm['datetime']
 
-async def scrape_changelog_version(session: ClientSession, output_path: str, unity_version: UnityVersion):
+async def scrape_changelog_version(session: ClientSession, output_path: str, index: int, unity_version: UnityVersion):
     # cache unity_version variables
     changelog_url = unity_version.url
     slug = unity_version.version_string
@@ -150,6 +150,7 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, uni
     json_root['released'] = release_date
     json_root['slug'] = slug
     json_root['url'] = changelog_url
+    json_root['index'] = index
     category_types = []
     json_root['category_types'] = category_types
     root_node = ChangelogNode()
