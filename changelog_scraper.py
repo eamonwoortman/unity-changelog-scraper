@@ -94,7 +94,7 @@ def get_version_from_page(soup: BeautifulSoup, fallback_version: str):
     version = parse_unity_version(fallback_version)
     # looking for: <h3>2022.2.1f1 Release Notes</h3>
     #  or <h2>5.5.0f2 Release Notes (Full)</h2>
-    title_elements = soup.find_all(lambda tag: (tag.name == "h2" or tag.name == "h3") and "Release Notes" in tag.text)
+    title_elements = soup.find_all(lambda tag: (tag.name == "h2" or tag.name == "h3") and ("Release Notes" in tag.text or "Known Issues" in tag.text))
     for title_element in title_elements:
         title_text = title_element.text
         parsed_version = parse_unity_version(title_text)
