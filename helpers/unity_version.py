@@ -1,4 +1,5 @@
 import re
+import json
 
 VERSION_REGEX_PATTERN = r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:\.?(?P<prerelease>[fab]?\d+))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
 
@@ -29,5 +30,14 @@ class UnityVersion:
         if self.name == 'Archive':
             return False
         self.version_tuple = parse_version_tuple(self.version_string)
+        self.create_version_object(self.version_tuple)
         return True
 
+    def create_version_object(self, version):
+        self.object = {
+            'major': version[0],
+            'minor': version[1],
+            'patch': version[2]
+        }
+        if len(version) == 4:
+            self.object['pre_release'] = version[3]
