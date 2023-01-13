@@ -1,7 +1,7 @@
 import re
 import json
-
-VERSION_REGEX_PATTERN = r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:\.?(?P<prerelease>[fab]?\d+))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
+                            
+VERSION_REGEX_PATTERN = r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:[\.|\-]?(?P<prerelease>[fab]?\d+))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
 
 def versiontuple(v):
     if isinstance(v, str):
@@ -21,7 +21,7 @@ def parse_version_tuple(version_string):
 class UnityVersion:
     def __init__(self, name, url):
         self.name = name
-        self.version_string = url.rsplit('/', 1)[-1].replace('unity-', '').replace('-', '.')
+        self.version_string = url.rsplit('/', 1)[-1].replace('unity-', '')
         self.file_name = f'{self.version_string}.json'
         self.url = url
         self.is_valid = self.parse_version_object()
