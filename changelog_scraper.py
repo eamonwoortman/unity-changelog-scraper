@@ -147,7 +147,7 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     # prepare json document
     json_root = jsontree.jsontree() # our root json tree
     json_root['version_string'] = unity_version.name
-    json_root['version_object'] = unity_version.object
+    json_root['version_hash'] = unity_version.hash
     json_root['released'] = release_date
     json_root['slug'] = slug
     json_root['url'] = changelog_url

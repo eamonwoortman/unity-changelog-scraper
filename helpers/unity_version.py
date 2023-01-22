@@ -25,7 +25,8 @@ class UnityVersion:
         self.file_name = f'{self.version_string}.json'
         self.url = url
         self.is_valid = self.parse_version_object()
-
+        self.hash = self.create_hash()
+        
     def parse_version_object(self):
         if self.name == 'Archive':
             return False
@@ -41,3 +42,9 @@ class UnityVersion:
         }
         if len(version) == 4:
             self.object['pre_release'] = version[3]
+
+    def create_hash(self):
+        hash = (self.object['major'] * 100000000) + (self.object['minor'] * 1000000) + (self.object['patch'] * 10000)
+        if 'pre_release' in self.object:
+            hash = hash + (1 + self.object['pre_release'])
+        return hash
