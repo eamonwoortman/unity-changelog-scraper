@@ -27,7 +27,7 @@ def filter_unity_version_entries(version_object: UnityVersion, min_unity_version
     if version_object.version_tuple < MIN_SUPPORTED_UNITY_VERSION:
         #print('version not supported: %s'%version_object.version_tuple)
         return False
-    if min_unity_version is not None and  version_object.version_tuple < min_unity_version:
+    if min_unity_version is not None and version_object.version_tuple < min_unity_version:
         #print('version doesnt satisfy min version: %s, min_unity_version: %s'%(version_object.version_tuple, min_unity_version))
         return False
     return True
@@ -57,7 +57,7 @@ def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max
 
     # clamp the maximum amount of versions if max_scrapes is defined
     num_versions = len(version_objects)
-    if max_scrapes is not -1:
+    if max_scrapes != -1:
         num_versions = max(1, min(max_scrapes, num_versions))
         version_objects = version_objects[0:num_versions]
 
