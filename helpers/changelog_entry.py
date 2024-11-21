@@ -7,16 +7,45 @@ from helpers.changelog_transformer import ChangelogTransformer
 transformer = ChangelogTransformer()
 
 class ChangelogEntry:
-    regex = r"^((?P<bugprefix>(?P<bugcontent>\(.*\))(?:(?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*))(?:(?P<alt_category>(?:\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*[\:][ ]*)))?)|(?:(?P<category>(?:(?!http|https)\b\w+\b[\s\r\n]*){0,5})(?:(?:[ ]*\:[ ]*))))?(?P<modification>Added|Removed|Changed|Fixed|Updated|Deprecated|Improved|Obsoleted)?(?:(?:[ ]*\:[ ]*))?[\s]?(?P<content>.*)$"
-
+    regex = r"""
+    ^(
+        (?P<bugprefix>
+            (?P<bugcontent>\(.*?\))                          # Bug content enclosed in parentheses
+            (?:
+                (?P<prefixseperator>[ ]*-[ ]*[:]?[ ]*)       # Optional separator: dash and colon patterns
+            )?
+            (?:
+                (?P<alt_category>
+                    (?:\b\w+\b[\s\r\n]*){0,5}               # Alternative category: up to 5 words
+                )
+                (?:(?:[ ]*[\:][ ]*))?                        # Optional colon after alt category
+            )?
+        )
+        |
+        (?:
+            (?P<category>
+                (?:(?!http|https)\b\w+\b[\s\r\n]*){0,5}     # Category (excluding URLs), up to 5 words
+            )
+            (?:(?:[ ]*:[ ]*))?                              # Optional colon after category
+        )
+    )?
+    (?P<modification>
+        Added|Removed|Changed|Fixed|Updated|Deprecated|Improved|Obsoleted # Specific modification keywords
+    )?
+    (?:(?:[ ]*:[ ]*))?                                     # Optional colon after modification
+    [\s]?
+    (?P<content>.*)                                       # Remaining content
+    $
+    """
     def __init__(self, list_entry:Tag, override_modification):
         self.parse_list_entry(list_entry, override_modification)
 
     def parse_list_entry(self, list_entry: Tag, override_modification = None):
-        has_extended_markup = list_entry.p is not None
+        has_extended_markup = list_entry.p is not None and len(list_entry.p.contents) > 0
         if has_extended_markup:
             entry_p = list_entry.p
-            entry_text = entry_p.contents[0].replace('\n', ' ')
+            entry_text_content = str(entry_p.contents[0])
+            entry_text = entry_text_content.replace('\n', ' ')
         else:
             entry_text = list_entry.text
 
@@ -25,7 +54,7 @@ class ChangelogEntry:
         #   [category, alt_category]: '2D, AI, Android, Linux, ...' (optional)
         #   [modification]: 'Added, Removed, Fixed' (optional)
         #   [content]: 'A crash that occurred when ...'  
-        regex_match = re.match(self.regex, entry_text, re.MULTILINE)
+        regex_match = re.match(self.regex, entry_text, re.VERBOSE)
         match_groups = regex_match.groupdict()
 
         # prefix group
@@ -72,4 +101,4 @@ class ChangelogEntry:
         return str[0].upper() + str[1:]
 
     def strip_type(self, type_text):
-        return re.sub("^(?:\(.*\) - )", '', type_text).strip()
+        return re.sub(r"^(?:\(.*\) - )", '', type_text).strip()

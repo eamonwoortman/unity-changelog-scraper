@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-from changelog_scraper import (clear_output_folder, scrape_changelog_version,
-                               write_catalog)
+import argparse
+import asyncio
+import os
+import platform
+import re
+
+import aiohttp
+
+from changelog_scraper import (clear_output_folder, scrape_changelog_version)
 from helpers.unity_version import UnityVersion, versiontuple
 from version_scraper import find_unity_versions
-import argparse
-import re
-import os
-import aiohttp
-import asyncio
-import platform
+
 
 def semver_type(string):
     # Use a regular expression to check that the string is a valid SemVer string
@@ -67,6 +69,5 @@ def main():
 
     # scrape each changelog page
     asyncio.run(scrape_pages(output_path, unity_versions))
-
 
 main()

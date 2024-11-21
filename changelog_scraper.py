@@ -3,17 +3,16 @@ import glob
 import json
 import os
 import re
-import time
 from itertools import groupby
 from pathlib import Path
-from re import sub
 from typing import List
 
 import jsontree
-import requests
+from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
-from aiohttp import ClientSession
+from markdown import markdown
+
 from helpers.changelog_entry import ChangelogEntry
 from helpers.changelog_node import ChangelogNode, ChangelogNodeType
 from helpers.collection_helpers import unique
@@ -84,10 +83,10 @@ def bs_preprocess(html):
     """remove distracting whitespaces and newline characters"""
     pat = re.compile(r'(^[\s]+)|([\s]+$)', re.MULTILINE)
     html = re.sub(pat, '', html)       # remove leading and trailing whitespaces
-    html = re.sub('\n', ' ', html)     # convert newlines to spaces
+    html = re.sub(r'\n', ' ', html)     # convert newlines to spaces
                                     # this preserves newline delimiters
-    html = re.sub('[\s]+<', '<', html) # remove whitespaces before opening tags
-    html = re.sub('>[\s]+', '>', html) # remove whitespaces after closing tags
+    html = re.sub(r'[\s]+<', '<', html) # remove whitespaces before opening tags
+    html = re.sub(r'>[\s]+', '>', html) # remove whitespaces after closing tags
     return html 
 
 def get_version_from_page(soup: BeautifulSoup, fallback_version: str):
@@ -128,14 +127,17 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     changelog_url = unity_version.url
     slug = unity_version.version_string
     file_name = unity_version.file_name
- 
+    changeset_url = unity_version.changeset_url
+
     # fetch our changelog page's content
-    page = await fetch_changelog_page(session, changelog_url)
+    response = await fetch_changelog_page(session, changeset_url)
+    changeset_md = response.decode('utf-8')
+    page = markdown(changeset_md, output_format="html5")
     if page is None:
         return
         
     # preprocess so we strip new-line tags
-    processed_content = bs_preprocess(page.decode('utf-8'))
+    processed_content = bs_preprocess(page) # page.decode('utf-8')
     soup = BeautifulSoup(processed_content, 'html.parser')
 
     # parse the full version from the page (patch versions have different revisions, ie. 0f3 )
@@ -155,7 +157,6 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     category_types = []
     json_root['category_types'] = category_types
     root_node = ChangelogNode()
-
     change_types = []
     current_category_label = None # known issues, release notes, new entries since ...
     current_sub_category_label = None # improvements, changes, fixes, etc 
@@ -163,6 +164,7 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     current_sub_category_node = None
     for ul_element in soup.find_all(lambda tag: tag.name == "ul" and (tag.find_previous_sibling(name='h3') or tag.find_previous_sibling(name='h4'))):
         list_entries = ul_element.find_all('li', recursive=False)
+
         # ignore empty lists 
         if (len(list_entries) == 0):
             continue

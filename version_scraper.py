@@ -1,20 +1,49 @@
 import urllib.parse
 
-import requests
-from bs4 import BeautifulSoup
-from slugify import slugify
+from python_graphql_client import GraphqlClient
 
 from helpers.unity_version import UnityVersion, versiontuple
 
 # constants
+UNITY_RELEASES_ENDPOINT = "https://services.unity.com/graphql"
 UNITY_WHATS_NEW_URL = "https://unity.com/releases/editor/whats-new/"
 UNITY_BASE_URL = "https://unity.com/"
 MIN_SUPPORTED_UNITY_VERSION = versiontuple('5.1.0')
+UNITY_RELEASES_QUERY = '''
+query GetRelease($limit: Int, $skip: Int, $version: String, $stream: [UnityReleaseStream!])
+{
+  getUnityReleases(
+    limit: $limit
+    skip: $skip
+    stream: $stream
+    version: $version
+    entitlements: []
+  ) {
+    totalCount
+    edges {
+      node {
+        version
+        releaseNotes {
+            url
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}
+'''
 
-def create_version_object(list_entry):
+def create_version_object_old(list_entry):
     version_name = list_entry.text
     version_url = urllib.parse.urljoin(UNITY_BASE_URL, list_entry['href']) # https://unity3d.com/releases/editor/whats-new/2018.4.0
     return UnityVersion(version_name, version_url)
+
+def create_version_object(list_entry):
+    version_name = list_entry['version']
+    changelog_url = list_entry['release_notes_url']
+    return UnityVersion(version_name, None, changelog_url)
 
 def filter_unity_version_entries(version_object: UnityVersion, min_unity_version: versiontuple):
     """Filters unity version from our list
@@ -27,21 +56,55 @@ def filter_unity_version_entries(version_object: UnityVersion, min_unity_version
     if version_object.version_tuple < MIN_SUPPORTED_UNITY_VERSION:
         #print('version not supported: %s'%version_object.version_tuple)
         return False
-    if min_unity_version is not None and  version_object.version_tuple < min_unity_version:
+    if min_unity_version is not None and version_object.version_tuple < min_unity_version:
         #print('version doesnt satisfy min version: %s, min_unity_version: %s'%(version_object.version_tuple, min_unity_version))
         return False
     return True
     
+def get_unity_releases():
+    client = GraphqlClient(endpoint=UNITY_RELEASES_ENDPOINT)
+    stream = []
+    version = ''
+
+    #variables = {
+    #    "limit": "1000", 
+    #    "skip": 0
+    #}
+    variables = {
+        "limit": 1000,
+        "skip": 0
+    }
+
+    results = []
+    while (True):
+        result = client.execute(query=UNITY_RELEASES_QUERY, variables=variables)
+        data = result['data']
+        edges = data['getUnityReleases']['edges']
+        for edge in edges:
+            node = edge['node']
+            version = node['version']
+            url = node['releaseNotes']['url']
+            version_object = { 
+                "version": version,
+                "release_notes_url": url
+            }
+            results.append(version_object)
+      
+        if (data['getUnityReleases']['pageInfo']['hasNextPage'] == False):
+            break  
+
+        variables['skip'] += variables['limit'];
+    
+
+    return results;
+    #print(result)
+
 def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max_scrapes: int):
     """Return a list of "UnityVersion" objects
 
     Queries the Unity 'whats new' website and scrapes a list of Unity versions and their changelog urls
     """
-    agent_headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
-    page = requests.get(UNITY_WHATS_NEW_URL, headers=agent_headers)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    sidebar_div = soup.find('div', {"class", 'releases-item-list'})
-    version_li_entries = sidebar_div.findAll('a')
+    version_li_entries = get_unity_releases()
     version_list = list(map(lambda x: create_version_object(x), version_li_entries))
     version_objects = list(filter(lambda x: filter_unity_version_entries(x, min_unity_version), version_list))
 
@@ -57,7 +120,7 @@ def find_unity_versions(min_unity_version:versiontuple, test_full_set: bool, max
 
     # clamp the maximum amount of versions if max_scrapes is defined
     num_versions = len(version_objects)
-    if max_scrapes is not -1:
+    if max_scrapes != -1:
         num_versions = max(1, min(max_scrapes, num_versions))
         version_objects = version_objects[0:num_versions]
 

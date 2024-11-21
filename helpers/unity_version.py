@@ -1,6 +1,7 @@
 import re
-import json
-                            
+import urllib
+
+UNITY_WHATS_NEW_URL = "https://unity.com/releases/editor/whats-new/"
 VERSION_REGEX_PATTERN = r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:[\.|\-]?(?P<prerelease>[fab]?\d+))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
 
 def versiontuple(v):
@@ -16,16 +17,22 @@ def parse_unity_version(version_string):
 
 def parse_version_tuple(version_string):
     regex_match = re.search(VERSION_REGEX_PATTERN, version_string)
-    return versiontuple(filter(lambda x: x is not None, regex_match.groups()))
+    match_groups = regex_match.groups()[0:3]
+    return versiontuple(filter(lambda x: x is not None, match_groups))
 
 class UnityVersion:
-    def __init__(self, name, url):
+    def __init__(self, name, url, changeset_url):
+        self.version_string = name
         self.name = name
-        self.version_string = url.rsplit('/', 1)[-1].replace('unity-', '')
         self.file_name = f'{self.version_string}.json'
         self.url = url
         self.is_valid = self.parse_version_object()
         self.hash = self.create_hash()
+        if url != None:
+            self.url = url
+        else:
+            self.url = urllib.parse.urljoin(UNITY_WHATS_NEW_URL, '.'.join(map(str,self.version_tuple)))
+        self.changeset_url = changeset_url
         
     def parse_version_object(self):
         if self.name == 'Archive':
