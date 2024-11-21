@@ -41,10 +41,11 @@ class ChangelogEntry:
         self.parse_list_entry(list_entry, override_modification)
 
     def parse_list_entry(self, list_entry: Tag, override_modification = None):
-        has_extended_markup = list_entry.p is not None
+        has_extended_markup = list_entry.p is not None and len(list_entry.p.contents) > 0
         if has_extended_markup:
             entry_p = list_entry.p
-            entry_text = entry_p.contents[0].replace('\n', ' ')
+            entry_text_content = str(entry_p.contents[0])
+            entry_text = entry_text_content.replace('\n', ' ')
         else:
             entry_text = list_entry.text
 

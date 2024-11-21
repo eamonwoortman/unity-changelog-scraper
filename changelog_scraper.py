@@ -83,10 +83,10 @@ def bs_preprocess(html):
     """remove distracting whitespaces and newline characters"""
     pat = re.compile(r'(^[\s]+)|([\s]+$)', re.MULTILINE)
     html = re.sub(pat, '', html)       # remove leading and trailing whitespaces
-    html = re.sub('\n', ' ', html)     # convert newlines to spaces
+    html = re.sub(r'\n', ' ', html)     # convert newlines to spaces
                                     # this preserves newline delimiters
-    html = re.sub('[\s]+<', '<', html) # remove whitespaces before opening tags
-    html = re.sub('>[\s]+', '>', html) # remove whitespaces after closing tags
+    html = re.sub(r'[\s]+<', '<', html) # remove whitespaces before opening tags
+    html = re.sub(r'>[\s]+', '>', html) # remove whitespaces after closing tags
     return html 
 
 def get_version_from_page(soup: BeautifulSoup, fallback_version: str):
