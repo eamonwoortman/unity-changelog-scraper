@@ -23,6 +23,7 @@ query GetRelease($limit: Int, $skip: Int, $version: String, $stream: [UnityRelea
     edges {
       node {
         version
+        releaseDate
         releaseNotes {
             url
         }
@@ -43,7 +44,8 @@ def create_version_object_old(list_entry):
 def create_version_object(list_entry):
     version_name = list_entry['version']
     changelog_url = list_entry['release_notes_url']
-    return UnityVersion(version_name, None, changelog_url)
+    release_date = list_entry['release_date']
+    return UnityVersion(version_name, None, changelog_url, release_date)
 
 def filter_unity_version_entries(version_object: UnityVersion, min_unity_version: versiontuple):
     """Filters unity version from our list
@@ -84,9 +86,11 @@ def get_unity_releases():
             node = edge['node']
             version = node['version']
             url = node['releaseNotes']['url']
+            release_date = node['releaseDate']
             version_object = { 
                 "version": version,
-                "release_notes_url": url
+                "release_notes_url": url,
+                "release_date": release_date 
             }
             results.append(version_object)
       
