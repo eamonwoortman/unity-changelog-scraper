@@ -103,7 +103,6 @@ def get_version_from_page(soup: BeautifulSoup, fallback_version: str):
     return version
 
 async def fetch_changelog_page(session: ClientSession, changelog_url: str):       
-    print('Scraping version from url: %s'%changelog_url)
     page = None
     try:
         async with session.get(url=changelog_url) as response:
@@ -130,6 +129,7 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     changeset_url = unity_version.changeset_url
 
     # fetch our changelog page's content
+    print(f'Scraping version {unity_version.version_string} ({unity_version.release_date}) from url: {changeset_url}')
     response = await fetch_changelog_page(session, changeset_url)
     changeset_md = response.decode('utf-8')
     page = markdown(changeset_md, output_format="html5")
@@ -144,7 +144,7 @@ async def scrape_changelog_version(session: ClientSession, output_path: str, ind
     unity_version.name = get_version_from_page(soup, unity_version.name)
 
     # parse the release date
-    release_date = get_release_date_from_page(soup, slug)
+    release_date = unity_version.release_date #get_release_date_from_page(soup, slug)
 
     # prepare json document
     json_root = jsontree.jsontree() # our root json tree

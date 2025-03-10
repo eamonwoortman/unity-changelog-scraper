@@ -21,7 +21,7 @@ def parse_version_tuple(version_string):
     return versiontuple(filter(lambda x: x is not None, match_groups))
 
 class UnityVersion:
-    def __init__(self, name, url, changeset_url):
+    def __init__(self, name, url, changeset_url, release_date):
         self.version_string = name
         self.name = name
         self.file_name = f'{self.version_string}.json'
@@ -33,6 +33,7 @@ class UnityVersion:
         else:
             self.url = urllib.parse.urljoin(UNITY_WHATS_NEW_URL, '.'.join(map(str,self.version_tuple)))
         self.changeset_url = changeset_url
+        self.release_date = release_date
         
     def parse_version_object(self):
         if self.name == 'Archive':
