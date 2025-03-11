@@ -1,13 +1,14 @@
+from numbers import Number
 import re
 import urllib
 
 UNITY_WHATS_NEW_URL = "https://unity.com/releases/editor/whats-new/"
-VERSION_REGEX_PATTERN = r'(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:[\.|\-]?(?P<prerelease>[fab]?\d+))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?'
+VERSION_REGEX_PATTERN = regex = r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:(?P<prereleasetype>[abf])(?P<prereleasenumber>\d+))?"
 
 def versiontuple(v):
     if isinstance(v, str):
         return tuple(map(int, (v.split("."))))
-    return tuple(map(int, v))
+    return tuple(v)
 
 def parse_unity_version(version_string):
     version_match = re.search(VERSION_REGEX_PATTERN, version_string)
@@ -17,8 +18,8 @@ def parse_unity_version(version_string):
 
 def parse_version_tuple(version_string):
     regex_match = re.search(VERSION_REGEX_PATTERN, version_string)
-    match_groups = regex_match.groups()[0:3]
-    return versiontuple(filter(lambda x: x is not None, match_groups))
+    match_groups = regex_match.groups()
+    return versiontuple(filter(lambda x: x is not None and isinstance(x, Number), match_groups))
 
 class UnityVersion:
     def __init__(self, name, url, changeset_url, release_date):
@@ -38,21 +39,30 @@ class UnityVersion:
     def parse_version_object(self):
         if self.name == 'Archive':
             return False
-        self.version_tuple = parse_version_tuple(self.version_string)
-        self.create_version_object(self.version_tuple)
-        return True
 
-    def create_version_object(self, version):
+        regex_match = re.search(VERSION_REGEX_PATTERN, self.version_string)
+        match_groups = tuple(filter(lambda x: x is not None, regex_match.groups()))
+
+        if (len(match_groups) > 4):
+            version = (int(match_groups[0]), int(match_groups[1]), int(match_groups[2]), int(match_groups[4]))
+        else:
+            version = (int(match_groups[0]), int(match_groups[1]), int(match_groups[2]))
+
+        self.version_tuple = version
         self.object = {
-            'major': version[0],
-            'minor': version[1],
-            'patch': version[2]
+            'major': int(version[0]),
+            'minor': int(version[1]),
+            'patch': int(version[2])
         }
-        if len(version) == 4:
-            self.object['pre_release'] = version[3]
+
+        if len(version) > 3:
+            self.object['prereleasetype'] = match_groups[3]
+            self.object['prereleasenumber'] = int(version[3])
+        
+        return True
 
     def create_hash(self):
         hash = (self.object['major'] * 100000000) + (self.object['minor'] * 1000000) + (self.object['patch'] * 10000)
-        if 'pre_release' in self.object:
-            hash = hash + (1 + self.object['pre_release'])
+        if 'prereleasenumber' in self.object:
+            hash = hash + (1 + self.object['prereleasenumber'])
         return hash
